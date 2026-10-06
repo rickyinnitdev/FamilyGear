@@ -31,19 +31,19 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.1. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.2. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.1/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.1.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.2/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.2.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
-When bumping versions, update package.json, lockfile and visible UI version. Packaging paths currently hardcode windows-0.2.1 in package.json, package-windows.cjs, share.ps1 and update-manifest.cjs; update these together or refactor to derive version safely. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
+When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
 ## Updates and suggestions: next steps
 
-The initial repository has now been supplied, but no GitHub Release has been published by this task. The already-built 0.2.1 installer has NO configured update address or suggestion repository. Merely pushing source does not connect that installer.
+Development stays in the owner's private repository. Public downloads and suggestions use https://github.com/rickyinnitdev/FamilyGear-Downloads. Version 0.2.2 is the first installer configured for that public repository. Older 0.2.0/0.2.1 builds have no feed; users must install the configured version once.
 
-For public Releases, build with `$env:FAMILY_GEAR_GITHUB_REPO = 'rickyinnitdev/FamilyGear'`. This derives `https://github.com/rickyinnitdev/FamilyGear/releases/latest/download/` and configures suggestions. FAMILY_GEAR_UPDATE_URL can override the feed. Upload installer, blockmap, matching source ZIP and latest.yml to a stable Latest release. See FREE-UPDATES.md.
+The default download repository lives in desktop/distribution.cjs. FAMILY_GEAR_GITHUB_REPO and FAMILY_GEAR_UPDATE_URL can override it at build time. The feed is https://github.com/rickyinnitdev/FamilyGear-Downloads/releases/latest/download/.
 
-If the repository is private, the current anonymous generic updater cannot download its assets. Browser GitHub login does not authenticate Electron updates. Discuss an authenticated design or a separate public releases repository; never embed the owner's personal access token in distributed apps. Friends with repository access can manually download private Releases and submit Issues while logged in.
+Run npm run build:installer to prepare files, then npm run release:github only when explicitly authorized to publish a release. It reads Git Credential Manager only on the owner's build machine, creates a draft, uploads installer/blockmap/source/latest.yml, then publishes as Latest. Never put credentials into app resources. The public repository must remain public for unauthenticated downloads. See FREE-UPDATES.md.
 
 Suggestions are previewed, then opened as a GitHub Issue form for the friend to submit. Review opens the GitHub inbox, where the owner comments/labels/closes. Copy message works without a repository; it does not deliver anything to an online inbox. No in-app authenticated review dashboard exists yet.
 

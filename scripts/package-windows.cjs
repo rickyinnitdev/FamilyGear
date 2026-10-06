@@ -8,10 +8,10 @@ const { updateAddress } = require('../desktop/updates.cjs');
 (async () => {
   if (process.platform !== 'win32') throw new Error('Build this Windows package on Windows.');
   const root = path.resolve(__dirname, '..');
-  const output = path.join(root, 'release/windows-0.2.1/win-unpacked');
+  const output = path.join(root, `release/windows-${require('../package.json').version}/win-unpacked`);
   const staging = path.join(root, 'release/updater-app-source');
   const version = require('../package.json').version;
-  const repository = require('../desktop/community.cjs').repository(process.env.FAMILY_GEAR_GITHUB_REPO);
+  const repository = require('../desktop/community.cjs').repository(process.env.FAMILY_GEAR_GITHUB_REPO ?? require('../desktop/distribution.cjs').repository);
   const url = updateAddress(process.env.FAMILY_GEAR_UPDATE_URL || (repository ? `https://github.com/${repository}/releases/latest/download/` : ''));
   const archive = await downloadArtifact({ version: require('electron/package.json').version, artifactName: 'electron', platform: 'win32', arch: 'x64' });
   await fs.mkdir(output, { recursive: true });

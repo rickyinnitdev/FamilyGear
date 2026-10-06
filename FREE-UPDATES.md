@@ -1,36 +1,29 @@
-# Free updates and suggestions
+# Family Gear updates
 
-Use a GitHub Free public repository, manual Releases uploads, and Issues. This setup needs no paid hosting or payment card. Do not enable paid services for this workflow.
+Development repository: https://github.com/rickyinnitdev/FamilyGear (keep private).
+Download repository: https://github.com/rickyinnitdev/FamilyGear-Downloads (public).
 
-## First setup
+The public repository holds Releases and suggestion Issues. Use manual uploads or the explicit local release command. No paid hosting, Actions, Packages or cloud server is needed. GitHub supplies HTTPS.
 
-1. Create a free GitHub account and a public repository named `Family-Gear`. Keep Issues enabled in repository Settings.
-2. Upload the editable project source, LICENSE, notices and build instructions. Keep installers out of Git: upload them as Release assets instead.
-3. Send your repository URL to the person building the app. Configure it in PowerShell before building:
+## Install once
 
-   ```powershell
-   $env:FAMILY_GEAR_GITHUB_REPO = 'YOUR-USERNAME/Family-Gear'
-   npm run build:installer
-   ```
+Download the Setup .exe from the latest Release in FamilyGear-Downloads. Version 0.2.2 is the first configured installer. Older 0.2.0/0.2.1 installers need this one manual upgrade. No GitHub account is needed to download or update. Each installer contains its corresponding source ZIP and notices. About & source opens the installed resources folder containing that archive.
 
-4. Create a stable release tagged `v0.2.1` on GitHub. Upload `FamilyGear-Setup-0.2.1.exe`, its `.blockmap`, `Family-Gear-source-0.2.1.zip` and `latest.yml` from `release/updates`. Publish after all files finish uploading. Mark this stable release as Latest.
-5. Share the configured installer once with your friends. They do not need GitHub accounts to download updates.
+## Your routine when adding features
 
-The app checks `https://github.com/YOUR-USERNAME/Family-Gear/releases/latest/download/latest.yml`. GitHub supplies HTTPS; you do not need a domain or web server.
+1. Make changes in the private development repository.
+2. Bump package.json, package-lock.json and the visible app version. Packaging output paths automatically follow the version.
+3. Run npm test and npm run build:installer.
+4. With the owner's GitHub account authenticated in Git Credential Manager, run npm run release:github. This publishes only to FamilyGear-Downloads. It creates a draft, uploads the installer, blockmap, matching source ZIP and latest.yml, then publishes as Latest. Do not run it unless ready to publish. Credentials stay on the owner's machine.
+5. Friends open Family Gear. It checks after opening and every four hours, downloads a newer stable version, then offers Restart to update. They can also check manually. Ordinary app exit does not install updates.
 
-## When adding features
+Alternative: create a stable GitHub Release manually, attach the four matching files from release/updates and set it as Latest. Do not upload old-version files by mistake or overwrite an already published version. Keep historical source archives available.
 
-1. Make the changes and update the version in package.json/package-lock.json and the displayed app version. Use a fresh output folder if the previous portable app is running; packaging paths currently target `windows-0.2.1`.
-2. Keep the same FAMILY_GEAR_GITHUB_REPO, run tests and `npm run build:installer`.
-3. Upload the changed source and create the new version's stable GitHub release. Attach the new installer, blockmap, matching source archive and latest.yml. Set the release as Latest.
-4. Friends open Family Gear. It downloads the new version and offers Restart to update. They can also click Check for updates.
-
-Keep each release's source archive available alongside its installer.
+Default feed: https://github.com/rickyinnitdev/FamilyGear-Downloads/releases/latest/download/latest.yml
+The configured repository is in desktop/distribution.cjs. Build-time FAMILY_GEAR_GITHUB_REPO or FAMILY_GEAR_UPDATE_URL overrides remain available.
 
 ## Suggestions
 
-Friends click Share an idea, write their message and preview it. Open GitHub form opens a public Issue form for them to review and submit with their own GitHub account. Nothing is submitted automatically. Suggestions contain only the text they enter.
+Share an idea lets friends compose and preview a message. Copy message works for group chat without login. Open GitHub form opens a public Issue form; submitting there uses their own GitHub account. Review suggestions on GitHub opens the public inbox so the owner can comment, label and close ideas. No USB/device data is attached automatically.
 
-Review suggestions on GitHub opens your repository's suggestion inbox. As repository owner, you can comment, label and close suggestions there. Copy message is available for group chat without GitHub login; copied messages do not automatically reach the GitHub inbox.
-
-Without a configured repository, Copy message works, but online updates and the suggestion inbox are not connected.
+The source repository's privacy does not make release downloads or included source private. This arrangement intentionally provides public downloads without access invitations.

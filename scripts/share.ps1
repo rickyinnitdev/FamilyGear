@@ -17,7 +17,8 @@ if (Test-Path -LiteralPath $protocolRoot) {
   }
 }
 Compress-Archive -LiteralPath $sourceRoot -DestinationPath (Join-Path $releaseRoot 'Family-Gear-source.zip') -Force
-$windowsRoot = Join-Path $releaseRoot 'windows-0.2.1/win-unpacked'
+$appVersion = (Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'package.json') | ConvertFrom-Json).version
+$windowsRoot = Join-Path $releaseRoot ('windows-' + $appVersion + '/win-unpacked')
 Copy-Item -LiteralPath (Join-Path $releaseRoot 'Family-Gear-source.zip') -Destination $windowsRoot -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot 'WINDOWS.md') -Destination (Join-Path $windowsRoot 'START-HERE.txt') -Force
 if ($SourceOnly) { exit 0 }

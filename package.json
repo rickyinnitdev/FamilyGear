@@ -1,6 +1,6 @@
 {
   "name": "family-gear",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -12,7 +12,8 @@
     "desktop": "npm run build && node node_modules/electron/install.js && electron .",
     "build:windows": "npm run build && node scripts/package-windows.cjs",
     "package:share": "powershell -File scripts/share.ps1",
-    "build:installer": "npm run build:windows && powershell -File scripts/share.ps1 -SourceOnly && electron-builder --config scripts/windows-builder.cjs --prepackaged release/windows-0.2.1/win-unpacked --win nsis --publish never && node scripts/update-manifest.cjs"
+    "build:installer": "tsc --noEmit && node scripts/build-installer.cjs",
+    "release:github": "node scripts/publish-release.cjs"
   },
   "dependencies": {
     "@openmouse/protocol": "git+https://github.com/OpenMouse-Project/mouse-protocol.git#ddcb173fbac224c74741fa4d3c835de54135fdb3",
