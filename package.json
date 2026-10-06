@@ -1,0 +1,37 @@
+{
+  "name": "family-gear",
+  "version": "0.2.1",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "tsx --test tests/*.test.ts",
+    "desktop": "npm run build && node node_modules/electron/install.js && electron .",
+    "build:windows": "npm run build && node scripts/package-windows.cjs",
+    "package:share": "powershell -File scripts/share.ps1",
+    "build:installer": "npm run build:windows && powershell -File scripts/share.ps1 -SourceOnly && electron-builder --config scripts/windows-builder.cjs --prepackaged release/windows-0.2.1/win-unpacked --win nsis --publish never && node scripts/update-manifest.cjs"
+  },
+  "dependencies": {
+    "@openmouse/protocol": "git+https://github.com/OpenMouse-Project/mouse-protocol.git#ddcb173fbac224c74741fa4d3c835de54135fdb3",
+    "electron-updater": "^6.8.9",
+    "lucide": "^0.468.0"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.3.1",
+    "@electron/get": "^3.1.0",
+    "@types/w3c-web-hid": "^1.0.6",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.1.0"
+  },
+  "productName": "Family Gear",
+  "main": "desktop/main.cjs",
+  "description": "Your personal mouse and keyboard studio",
+  "author": "Family Gear contributors"
+}
