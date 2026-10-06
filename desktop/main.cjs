@@ -1,12 +1,14 @@
-const { app, BrowserWindow, protocol, net, session, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, protocol, net, session, ipcMain, shell, dialog, clipboard } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
+const { scanDevices } = require('./scanner.cjs');
 const { createUpdates } = require('./updates.cjs');
 protocol.registerSchemesAsPrivileged([{ scheme: 'familygear', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 app.setName('Family Gear');
 let main, picker, pending, devices = [], closing = false, closeTimer;
 let communityRepository = null;
+let scanInFlight = null;
 let updates, restarting = false, allowClose = false;
 const trusted = url => { try { const u = new URL(url); return u.protocol === 'familygear:' && u.host === 'app'; } catch { return false; } };
 function finish(id = '') { const callback = pending; pending = null; if (picker && !picker.isDestroyed()) picker.close(); picker = null; callback?.(id); }
@@ -33,6 +35,15 @@ app.whenReady().then(async () => {
   session.defaultSession.on('hid-device-removed', (_, device) => { devices = devices.filter(d => d.deviceId !== device.deviceId); picker?.webContents.send('devices', devices); });
   ipcMain.on('choose-device', (event, id) => { if (event.sender === picker?.webContents) finish(devices.some(d => d.deviceId === id) ? id : ''); });
   ipcMain.on('open-source', event => { if (event.sender === main?.webContents) shell.openPath(fs.existsSync(path.join(process.resourcesPath, 'Family-Gear-source.zip')) ? process.resourcesPath : path.dirname(app.getPath('exe'))); });
+  ipcMain.handle('scan-devices', event => {
+    if (event.sender !== main?.webContents || !trusted(event.sender.getURL())) throw new Error('Untrusted scan request.');
+    if (!scanInFlight) scanInFlight = scanDevices().finally(() => { scanInFlight = null; });
+    return scanInFlight;
+  });
+  ipcMain.handle('copy-report', (event, text) => {
+    if (event.sender !== main?.webContents || !trusted(event.sender.getURL()) || typeof text !== 'string' || text.length > 32000) throw new Error('Invalid report.');
+    clipboard.writeText(text);
+  });
   ipcMain.handle('community', event => event.sender === main?.webContents ? communityRepository : null);
   ipcMain.handle('update-state', event => event.sender === main?.webContents ? updates?.state() ?? { phase: 'unconfigured', text: 'Updates need a download address.' } : null);
   ipcMain.on('check-updates', event => { if (event.sender === main?.webContents) void updates?.check(); });
@@ -49,7 +60,7 @@ app.whenReady().then(async () => {
     if (error) dialog.showErrorBox('Device cleanup', 'Unplug and reconnect your keyboard before using it again. ' + error);
     main.destroy();
   });
-  main = new BrowserWindow({ width: 1380, height: 920, minWidth: 900, minHeight: 650, backgroundColor: '#101312', autoHideMenuBar: true, title: 'Family Gear', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  main = new BrowserWindow({ icon: path.join(app.getAppPath(), 'desktop/icon.png'), width: 1380, height: 920, minWidth: 900, minHeight: 650, backgroundColor: '#101312', autoHideMenuBar: true, title: 'Family Gear', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   main.webContents.setWindowOpenHandler(({ url }) => { if (url.startsWith('https://')) shell.openExternal(url); else if (trusted(url)) net.fetch(url).then(r => r.text()).then(text => dialog.showMessageBox(main, { title: 'License', message: 'Family Gear license', detail: text })); return { action: 'deny' }; });
   main.webContents.on('will-navigate', (event, url) => { if (!trusted(url)) event.preventDefault(); });
   main.on('close', event => {

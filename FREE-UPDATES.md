@@ -27,3 +27,7 @@ The configured repository is in desktop/distribution.cjs. Build-time FAMILY_GEAR
 Share an idea lets friends compose and preview a message. Copy message works for group chat without login. Open GitHub form opens a public Issue form; submitting there uses their own GitHub account. Review suggestions on GitHub opens the public inbox so the owner can comment, label and close ideas. No USB/device data is attached automatically.
 
 The source repository's privacy does not make release downloads or included source private. This arrangement intentionally provides public downloads without access invitations.
+
+## Device reports (0.2.3)
+
+Open Scan devices in the Windows sidebar, then Scan connected devices. Select your gear, enter the real model name and requested features, and Preview report. Send report on GitHub opens a public form for review/submission; Copy report works for your group chat without login. Save report creates a local text file only when clicked. The scanner includes USB HID device names and VID/PID, not serial numbers, computer names or account details. Scanning does not send anything automatically. Review reports at https://github.com/rickyinnitdev/FamilyGear-Downloads/issues?q=is%3Aissue+%22%5BDevice+report%5D%22

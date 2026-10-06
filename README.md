@@ -91,3 +91,7 @@ See WINDOWS.md. Run npm run build:windows and npm run package:share to produce t
 ## Continuing development
 
 Read [AI_HANDOFF.md](AI_HANDOFF.md) for architecture, current work and update setup. [FREE-UPDATES.md](FREE-UPDATES.md) explains Releases and suggestion submission. Repository: https://github.com/rickyinnitdev/FamilyGear.
+
+## Windows device scanner
+
+Version 0.2.3 adds a read-only USB input-device scanner and simple MK app icon. Scan devices lets friends select and preview device names/IDs before opening a GitHub report form or copying/saving for group chat. Unsupported devices can be reported without opening or configuring them. Reports are not sent automatically. GitHub submission needs login; copying a report does not.

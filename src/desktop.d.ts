@@ -1,4 +1,5 @@
 interface DesktopUpdateState { phase: string; text: string; version?: string; percent?: number }
+interface ScannedDevice { vendorId: number; productId: number; name: string; deviceClass: string }
 interface Window {
   familyGear?: {
     onClose(handler: (reason: string) => Promise<void>): void;
@@ -8,5 +9,7 @@ interface Window {
     restartUpdate(): void;
     source(): void;
     community(): Promise<string | null>;
+    scanDevices(): Promise<ScannedDevice[]>;
+    copyReport(text: string): Promise<void>;
   };
 }

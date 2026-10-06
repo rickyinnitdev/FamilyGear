@@ -21,6 +21,7 @@ const { updateAddress } = require('../desktop/updates.cjs');
   for (const file of ['dist','desktop','LICENSE','THIRD_PARTY_NOTICES.md']) await fs.cp(path.join(root,file), path.join(staging,file), { recursive: true, force: true });
   await esbuild.build({ stdin: { contents: "module.exports = require('electron-updater');", resolveDir: root }, bundle: true, platform: 'node', format: 'cjs', external: ['electron'], outfile: path.join(staging,'desktop/updater-runtime.cjs') });
   await fs.writeFile(path.join(staging,'package.json'), JSON.stringify({ name: 'family-gear', productName: 'Family Gear', version, main: 'desktop/main.cjs', license: 'AGPL-3.0-or-later' }));
+  await fs.copyFile(path.join(root,'build/icon.png'), path.join(staging,'desktop/icon.png'));
   await asar.createPackage(staging, path.join(output,'resources/app.asar'));
   await fs.mkdir(path.join(output,'licenses'), { recursive: true });
   await fs.copyFile(path.join(root,'node_modules/lucide/LICENSE'),path.join(output,'licenses/LUCIDE.txt'));
@@ -38,7 +39,7 @@ const { updateAddress } = require('../desktop/updates.cjs');
   }
   await fs.writeFile(path.join(output,'resources/family-gear-updates.json'), JSON.stringify({ url, repository }, null, 2));
   if (url) await fs.writeFile(path.join(output,'resources/app-update.yml'), `provider: generic\nurl: ${JSON.stringify(url)}\nupdaterCacheDirName: family-gear-updater\n`);
-  await fs.copyFile(path.join(output,'electron.exe'), path.join(output,'Family Gear.exe'));
+  await require('./embed-icon.cjs').embedIcon(path.join(output,'electron.exe'), path.join(output,'Family Gear.exe'), path.join(root,'build/icon.ico'), version);
   await fs.unlink(path.join(output,'electron.exe'));
   console.log('Windows app ready: ' + path.join(output,'Family Gear.exe'));
 })().catch(error => { console.error(error); process.exitCode = 1; });

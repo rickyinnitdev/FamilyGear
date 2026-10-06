@@ -38,7 +38,7 @@ export function bindSuggestions() {
       if (repository) window.open(`https://github.com/${repository}/issues/new?${new URLSearchParams({title:issueTitle, body:contents})}`, '_blank', 'noopener,noreferrer');
     });
     dialog.querySelector('.suggestion-copy')!.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(`${issueTitle}\n\n${contents}`); status.textContent = 'Copied. Paste it in your group chat.'; }
+      try { await (window.familyGear ? window.familyGear.copyReport(`${issueTitle}\n\n${contents}`) : navigator.clipboard.writeText(`${issueTitle}\n\n${contents}`)); status.textContent = 'Copied. Paste it in your group chat.'; }
       catch { status.textContent = 'Select the preview text and copy it manually.'; }
     });
     dialog.querySelector('.suggestion-close')!.addEventListener('click', () => dialog.close());

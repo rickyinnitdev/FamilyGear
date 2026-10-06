@@ -3,6 +3,7 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const version = require('../package.json').version;
 const run = (file, args) => execFileSync(file, args, { cwd: root, stdio: 'inherit' });
+run('powershell.exe', ['-NoProfile', '-File', 'scripts/make-icon.ps1']);
 run(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build']);
 run(process.execPath, [path.join(root, 'scripts/package-windows.cjs')]);
 run('powershell.exe', ['-NoProfile', '-File', 'scripts/share.ps1', '-SourceOnly']);

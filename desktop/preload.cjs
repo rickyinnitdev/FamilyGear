@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('familyGear', {
   onDevices: handler => ipcRenderer.on('devices', (_, devices) => handler(devices)),
   choose: id => ipcRenderer.send('choose-device', id),
   community: () => ipcRenderer.invoke('community'),
+  scanDevices: () => ipcRenderer.invoke('scan-devices'),
+  copyReport: text => ipcRenderer.invoke('copy-report', text),
   source: () => ipcRenderer.send('open-source'),
   updateState: () => ipcRenderer.invoke('update-state'),
   onUpdate: handler => ipcRenderer.on('update-state', (_, state) => handler(state)),
