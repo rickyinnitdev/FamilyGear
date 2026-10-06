@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 38. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 40. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,9 +31,9 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.3. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.4. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.3/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.3.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.4/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.4.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -60,3 +60,7 @@ Simple MK icon: public/favicon.svg, build/icon.ico/icon.png, reproducible script
 Scan devices in the Windows sidebar uses desktop/scanner.cjs through narrow IPC. It invokes read-only Get-PnpDevice -PresentOnly, adds USB bus-reported names, and filters hubs/storage/cameras without HID counterparts. Only names, class, VID and PID are returned. No paths, serials or account identifiers leave the scanner. Unsupported USB HID families are included; Bluetooth-only devices are not. Scan and reports never change hardware or enable unsupported controls.
 
 Friends choose rows, supply the actual model name/feature requests and preview. They can copy/save the report or open a public GitHub Issue form prefixed [Device report]. Submitting GitHub reports requires the friend's own login; group chat copying does not. No automatic report delivery or anonymous server inbox exists. User was offered a choice of GitHub reports versus a separate no-login service; default is the existing GitHub inbox with copy fallback unless they request another destination.
+
+## Version 0.2.4 scanner grouping
+
+Scanner now includes only present/OK USB Mouse or Keyboard device families, groups interfaces with Windows ContainerId internally, and prefers the USB bus-reported product name. Container IDs never enter the renderer or reports. Two identical physical devices remain separate when Container IDs are available; missing IDs fall back to VID/PID grouping. HID-only audio/radio/vendor entries and hubs are excluded. This identifies connected working devices; it does not track which mouse is currently moving or keyboard is being typed on.
