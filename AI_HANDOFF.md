@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.19. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.20. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -130,3 +130,6 @@ Fixed outer IPC connect deadline (30 seconds) racing bounded Windows metadata he
 
 ## Version 0.2.19 DPI GET aliases
 Friend X11 0.2.18 report confirms interfaces passed, settings failed with Unrecognized X11 DPI encoding. Removed incorrect GET-to-preferred-SET byte identity requirement: documented table codes may appear with 50/100-step storage and low-range double flags. Reads validate known table membership, y format, bounded decoded DPI and existing multiplier/header/checksum checks. No permissive default for unknown bytes. Writes still require exact encoder roundtrip, preserve unrelated bytes and full readback. Regression tests cover aliases and corrupt formats. 96 tests/build pass; no physical X11 confirmation.
+
+## Version 0.2.20 supplied ATTACK SHARK artwork
+Owner confirmed the friend X11 now connects after 0.2.19; this confirms connection, not every physical setting. Owner supplied public/images/attack-shark-x11.png and attack-shark-x68he.png. X11 home card/input preview use its image; X68 home card replaces placeholder with keyboard image and uncropped contain layout. Existing interactive keyboard RGB/trigger board remains. Build passes; hardware code unchanged.
