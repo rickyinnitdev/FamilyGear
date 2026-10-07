@@ -1,14 +1,21 @@
-# ATTACK SHARK X68HE
+# ATTACK SHARK X68HE — 0.2.14
 
-Device supplied in the owner's scan: 3151:502D. Official product page advertises Hall effect switches, rapid trigger, 8 kHz, DKS, MT, TGL and Snap Tap: https://attackshark.com/products/attack-shark-x68-he-rapid-trigger-keyboard-magnetic-switch
+The owner's device is 3151:502D. The [official product page](https://attackshark.com/products/attack-shark-x68-he-rapid-trigger-keyboard-magnetic-switch) advertises rapid trigger, 8 kHz, DKS, MT, TGL and Snap Tap. These features require model-specific protocols; Hall effect switches do not imply compatibility with MCHOSE commands.
 
-Protocol facts investigated using https://github.com/srineshr1/keyboard-driver and the official configurator https://qmk.top. The research repository has no explicit software license; no source code or assets were copied into Family Gear. The adapter is independently written.
+Wire facts were investigated from the official configurator https://qmk.top and its bundle https://qmk.top/js/index.MMrdkImu.js. The adapter is independently written. An unlicensed research repository was consulted for protocol facts; no implementation or artwork was copied.
 
-Experimental initial support uses usage FFFF:0002, report-ID-zero 64-byte feature reports. GET 85 reads the profile; GET 84 reads polling; GET 87 reads RGB. SET 04 and 07 are followed by fresh GET verification. RGB option byte is preserved, RGB uses byte-8 checksum. Other command headers use byte-7 checksum. The client rejects unrecognized responses and stale snapshots.
+## Implemented protocol
 
-HE E5 parameter pages are read only when the returned command, parameter, selector and page headers match. No fallback treating arbitrary bytes as settings. Distances here are the documented 0.1 mm wire encoding, not a claim about sensor precision. Slots are firmware slots, not asserted physical key mappings. Research layout contains 66 positions despite the model name; mapping must be verified on hardware before HE writes or clickable physical assignment.
+Usage FFFF:0002, report-ID-zero 64-byte feature reports. Current HE polling is GET83/SET03, rate byte 2; GET84 reads profile. SET04 switches profiles and is never used for polling. An older GET85/GET84 fallback remains read-only. GET87/SET07 handles lighting, preserving its option byte and using byte-8 checksum. Other headers use byte-7 checksum. SET responses are not acknowledgements: actual GET readback is required.
 
-Calibration, analog streaming, HE editing, advanced bindings, remapping and profile switching are not enabled in this initial adapter. Normal keyboard input is never disabled. RGB and polling require physical verification on the friend's keyboard; mocked tests only check software behavior. No firmware flashing or factory reset.
+GET8F firmware bytes 7/8 select distance encoding: before 768, legacy u8 (value+1)/10 with inverted bottom deadzone (39-value)/10; before 1280, LE u16 /100; later, LE u16 /200. E5 parameter responses are raw 64-byte pages, not echoed command headers. Parameters 0/1/2/3/6/7 provide actuation, release, RT press/release, bottom deadzone and mode flags. Each complete parameter is read twice and checked for stable, recognized values. Unknown firmware/layout leaves trigger controls unavailable.
 
-## Correction, 2026-10-07
-Inspected official https://qmk.top/js/index.MMrdkImu.js, independently recording wire facts. The HE ry5088 class overrides polling to GET 83 / SET 03 (rate byte 2, byte 1 zero); profile uses GET 84 / SET 04. The inherited older keyboard class uses a different numbering scheme. Removed SET04 entirely from this adapter, disabled polling writes when GET83 is unrecognized, and changed SET transactions to send-only plus actual GET readback after settling. Unknown HE raw responses remain unavailable rather than decoded as headers/0.1 mm.
+Physical positions are not assumed from a borrowed matrix. A release baseline and two held-switch E5 FE reads verify each browser key against exactly one hardware slot before editing. SET65 changes only verified normal-mode keys, preserves other keys and flags, rejects stale snapshots and verifies every complete parameter after writing. Disabled rapid trigger preserves unused sensitivity bytes. Advanced modes are refused by trigger editing.
+
+## UI and limits
+
+The main keyboard workspace provides Lighting, Key tester, Trigger, Advanced keys, Performance and Device tabs, selectable keys, current settings, Cancel and explicit Apply. RGB previews illustrate selected effects; key highlights use digital input. They are not measurements of the physical LEDs or analog depth.
+
+DKS, MT, TGL, Snap Tap editing, remapping, calibration, switch replacement and continuous analog streaming remain unavailable. Their binding banks and session state need separate verification. No firmware flashing or factory reset is performed.
+
+83 unit tests and an Electron UI harness exercise mocked devices. The owner has supplied successful physical RGB/polling reads, but this new HE path has not been tested with a physical X68HE. Keep support experimental and do not claim complete parity with Ace 60 Pro. X11 receiver 1D57:FA60 still has a failed connection report; this release does not fix it.
