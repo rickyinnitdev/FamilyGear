@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 52. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 66. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -27,13 +27,13 @@ Welcome home, Add device cards using supplied artwork, hover effects, dark/cream
 
 Read current hardware settings rather than supplying defaults. Ace Pro Quick Trigger (mode 1) and continuous Rapid Trigger (mode 2) are distinct; preserve the loaded mode. Pro brightness is 0–100, not 0–4. Analog travel must come from measured reports, not fabricated animations. Restore debug/calibration state when ending sessions. Preserve unrelated keys, layers, shared banks and unknown bytes; reject stale state and require device readback after writes.
 
-Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 60 Pro firmware 1.18, and model-specific ATTACK SHARK GearHub/CompX adapters. X11 needs an unimplemented native bridge. AULA SC620 has a separate experimental independently authored adapter. Other AULA models are unsupported; do not advertise universal support. See tests and README for details.
+Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 60 Pro firmware 1.18, and model-specific ATTACK SHARK GearHub/CompX adapters. X11 has an experimental Windows native bridge. AULA SC620 has a separate experimental independently authored adapter. Other AULA models are unsupported; do not advertise universal support. See tests and README for details.
 
 ## Windows packaging
 
-Current version: 0.2.8. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.10. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.8/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.8.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.10/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.10.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -95,3 +95,9 @@ Owner supplied `public/images/aula-sc620.png`, now used for the SC620 card and m
 `desktop/x11-engine.cjs` uses async node-hid in a worker; the IPC bridge exposes whitelisted high-level operations, not arbitrary reports or HID paths. Reads use the A0 permission handshake and validate headers/profile/checksums. Writes compare current rows against displayed snapshots, preserve unrelated bytes, and require complete readback. Failed writes invalidate snapshots. Battery-only telemetry never refreshes settings snapshots. `src/devices/x11.ts` adapts to existing panels, overriding every exposed setter so no ATK packets are sent to this model. Supports DPI/stage/color/active stage, 125–1000 Hz polling, 4–50 ms debounce, sensor flags, LOD, sleep, lighting/deep sleep, basic/media button assignments and reported profiles. Left click is locked. Stage count and macros are deliberately unavailable pending further protocol verification; dock RGB uses its physical button. Not full feature parity with every vendor configurator.
 
 MIT DPI source/provenance is in `desktop/vendor/x11`. node-hid and pkg-prebuilds are copied into staging and native `.node` files are ASAR-unpacked. Keep these dependencies and their licenses in installer packaging and corresponding source instructions. npm install reconstructs them. Regression tests include stale/ignored writes, unknown-byte preservation, model rejection and telemetry separation.
+
+## Version 0.2.10 Windows X11 receiver pairing
+
+A friend using the X11 2.4 GHz receiver reported “X11 event interface unavailable.” The original matcher removed `&colXX` only, which does not account for collection-specific Windows PnP instance suffixes. Native pairing now reads `DEVPKEY_Device_ContainerId` using bounded, hidden, read-only PowerShell, maps exact PnP instances internally, and requires a unique event collection in the command collection’s physical container. It never falls back to VID/PID alone. Missing event interface numbers are accepted only with a verified physical group or exact collection-normalized path. Ambiguous groups fail closed. Paths, serials and container identifiers remain private in the worker. Hardware model checks and settings readback remain mandatory.
+
+Add device → X11 connection details opens a reviewed local report listing only VID/PID/interface/usage page/usage; Copy does not automatically send it. Preload removes the Electron remote-method prefix from X11 errors. Seven new tests cover Windows suffix differences, identical receivers, missing interface numbers, ambiguity, diagnostics privacy and bounded Windows metadata reads. No physical X11 is available here; this fixes a pairing limitation but does not prove the friend’s receiver now connects.

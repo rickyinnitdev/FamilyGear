@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('familyGear', {
-  x11: (operation,args=[]) => ipcRenderer.invoke('x11',operation,args),
+  x11: async (operation,args=[]) => {
+    try { return await ipcRenderer.invoke('x11',operation,args); }
+    catch(error) { throw new Error(String(error.message).replace(/^Error invoking remote method 'x11': Error:\s*/,'')); }
+  },
   onClose: handler => ipcRenderer.on('closing', async (_, reason) => {
     try { await handler(reason); ipcRenderer.send('closed-devices'); }
     catch (error) { ipcRenderer.send('closed-devices', String(error)); }
