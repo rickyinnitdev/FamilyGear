@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 93. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 94. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.17. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.18. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -124,3 +124,6 @@ X68 Trigger UI has actuation/RT/deadzone slider+number columns, per-key saved va
 ## Version 0.2.17 direct X68 editing and connection feedback
 GET8F model ID is repeated around full HE reads. Exact official desktop factory-map facts for revisions 2270/2472/2902 allow direct per-key editing without release/hold mapping. Unknown revisions do not get an assumed map; trigger UI remains disabled. Active remapping banks never identify physical positions. Full stale checks now compare model ID too. The 66-key physical ANSI display removes nonexistent Insert/AltRight and places Del/PgUp/PgDn correctly. Click toggles multi-selection, with WASD/all/invert/clear. Trigger board is neutral with selected highlights. Multicolor reflects GET87 option bits; selecting Constant or choosing a color clears it, preserving direction and special music/picture/screen fields. No automatic lighting writes on connection.
 X11 latest friend report fails interfaces before settings. Batched Windows parent/container property reads and a bounded 30-second lookup address possible slow metadata enumeration; verified physical grouping is still mandatory. Connecting dialog and failure-details error prevent silent-looking failure. No physical X11 is available, so this does not establish that his receiver works. 93 unit tests and build pass.
+
+## Version 0.2.18 X11 deadline and targeted discovery
+Fixed outer IPC connect deadline (30 seconds) racing bounded Windows metadata helper (also 30 seconds). Connect allows 60 seconds for metadata, model identity and strict complete settings reads; other operations retain 30 seconds. Windows queries only exact HID instance IDs derived from the enumerated X11 paths, passed base64 JSON inside encoded PowerShell, instead of enumerating every present PC device. Parent/container verification and ambiguity rejection remain unchanged. Connection progress UI explains first-connection timing. 94 tests and build pass. No physical X11 attached; do not claim confirmed hardware connection.

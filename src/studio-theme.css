@@ -134,3 +134,5 @@ input:checked+.switch:before {background:var(--bg)}
 @media(prefers-reduced-motion:reduce) {.gear-card,.gear-art img,.welcome-visual>img,.primary {transition:none;transform:none!important}}
 .advanced-studio .apply-bar {justify-content:flex-end;gap:12px}
 .advanced-studio .apply-bar>span {margin-right:auto}
+
+.x11-progress{max-width:460px}.x11-progress small{display:block;line-height:1.6;color:var(--muted)}.connection-loader{height:4px;border-radius:4px;background:linear-gradient(90deg,transparent,var(--lime),transparent);background-size:200% 100%;margin:24px 0;animation:connection-progress 1.4s linear infinite}@keyframes connection-progress{from{background-position:200% 0}to{background-position:-200% 0}}@media(prefers-reduced-motion:reduce){.connection-loader{animation:none}}
