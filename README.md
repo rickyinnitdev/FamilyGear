@@ -99,7 +99,7 @@ Version 0.2.3 adds a read-only USB input-device scanner and simple MK app icon. 
 
 ## Mouse troubleshooting and SC620 reports
 
-Version0.2.6 removes the R1 receiver UI fallback that could display1,000 Hz after an unavailable polling read. The selector-based polling command waits for settling and requires an actual matching readback. Existing R1 DPI stages can be edited after a complete valid layout is read; every write preserves other stages and rejects stale data. Use the physical DPI button to switch stages on this receiver. Unknown reads and unsupported writes remain unavailable and need physical verification.
+Version 0.2.7 corrects polling for the CompX VXE R1 (3554:F58E/F58F): it uses the system polling pair rather than the Beken live-settings selector. The connected F58E receiver passed the built app's Apply test at 800 DPI and 500 Hz, then its original 1600 DPI and 1000 Hz were restored. Each write requires device readback and preserves unrelated settings. Pending selections remain visible if Apply fails, with an inline error and Cancel changes. Use the physical DPI button to switch stages on this receiver. Other hardware still requires its own verification.
 
 Check delay & optimize previews a supported mouse preset, verifies each change and offers restoration. Windows pointer acceleration/speed are read only; opening Windows settings is optional. It does not claim zero delay or measure end-to-end input latency. See Microsoft’s input-latency guidance: https://learn.microsoft.com/en-us/windows/uwp/gaming/optimize-performance-for-windows-store-direct3d-11-apps-with-coredispatcher and pointer settings: https://support.microsoft.com/en-us/windows/hardware/input-devices/change-mouse-settings .
 

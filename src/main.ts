@@ -30,6 +30,13 @@ let keyboardTab = 'lighting';
 let busy = false;
 let mouse: VxeClient | null = null;
 let mouseStatus: MouseStatus | null = null;
+let mouseDraft: typeof demoMouse | null = null;
+let mouseApplyResult: {text:string;kind:'info'|'success'|'error'} | null = null;
+function readMouseDraft(){
+  const value=(id:string)=>Number(document.querySelector<HTMLSelectElement>('#'+id)!.value);
+  const checked=(id:string)=>document.querySelector<HTMLInputElement>('#'+id)!.checked;
+  return {dpi:value('dpi'),pollingRateHz:value('polling'),debounceMs:value('debounce'),motionSync:checked('motion'),angleSnapping:checked('angle'),rippleControl:checked('ripple')};
+}
 let keyboard: AceClient | null = null;
 let keyboardStatus: AceStatus | null = null;
 let proData: ProData | null = null;
@@ -80,7 +87,7 @@ function render() {
       <span class="nav-label">YOUR STUDIO</span><button id="home" class="nav-item ${home?'active':''}">${icon('layout-grid')}<span>Your desk</span></button>
       <button class="nav-item ${!home&&view === 'mouse' ? 'active' : ''}" data-view="mouse" ${!mouse&&!demo?'hidden':''}>${icon('mouse')}<span>Mouse</span><span class="nav-count">01</span></button>
       <button class="nav-item ${!home&&view === 'keyboard' ? 'active' : ''}" data-view="keyboard" ${!keyboard&&!demo?'hidden':''}>${icon('keyboard')}<span>Keyboard</span><span class="nav-count">02</span></button>
-      <div class="sidebar-bottom"><div class="local-note">${icon('shield-check')}<div>On your device<small>Settings travel directly over USB.</small></div></div>${desktop?'<button class="text-button" id="device-scanner">Scan devices</button>':''}<button class="text-button" id="suggestions">Share an idea</button><button class="text-button" id="about">${icon('info')} About & source</button><span class="version">Family Gear / v0.2.6</span></div>
+      <div class="sidebar-bottom"><div class="local-note">${icon('shield-check')}<div>On your device<small>Settings travel directly over USB.</small></div></div>${desktop?'<button class="text-button" id="device-scanner">Scan devices</button>':''}<button class="text-button" id="suggestions">Share an idea</button><button class="text-button" id="about">${icon('info')} About & source</button><span class="version">Family Gear / v0.2.7</span></div>
     </aside>
     <div class="shell">
       <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>${home?'Your desk':view === 'mouse' ? 'Mouse' : 'Keyboard'}</strong></div><div class="top-actions">${desktop?'<button class="theme-button" id="desktop-update"></button>':''}<button class="theme-button" id="theme-toggle" aria-label="Switch to ${theme==='dark'?'light':'dark'} mode">${theme==='dark'?'☀':'☾'}<span>${theme==='dark'?'Light':'Dark'} mode</span></button><label class="demo-toggle"><input id="demo" type="checkbox" ${demo ? 'checked' : ''} ${busy ? 'disabled' : ''}/><span>Preview mode</span></label><span class="local-pill">${icon('cable')} Local connection</span></div></header>
@@ -133,6 +140,7 @@ function mousePanel() {
   if (mouseTab === 'profiles') return mouseProfilesPanel();
   if (mouseTab === 'device') return deviceInfoPanel();
   const s = demo ? demoMouse : mouseStatus;
+  const editing = mouseDraft ?? s;
   const locked = busy || (!demo && (!mouse || !mouseStatus || mouseStatus.ui?.settingsReady===false));
   const dpiValues = demo ? [400, 800, 1600, 3200, 6400] : mouse?.getDpiOptions() ?? [];
   const polling = demo ? [125, 250, 500, 1000] : mouseStatus?.supportedPollingRates ?? [];
@@ -145,11 +153,11 @@ function mousePanel() {
   ];
   return `<div class="stats">${stats.map(([glyph, label, value, unit, sub],i) => `<div class="stat" ${i===0?'id="battery-stat"':''}><span>${icon(String(glyph))}${label}</span><strong>${i===0?`<b id="battery-value">${escape(value)}</b>`:escape(value)}<small>${unit}</small></strong><p ${i===0?'id="battery-detail"':''}>${escape(i===0&&!demo?batteryDetail():sub)}</p></div>`).join('')}</div>
     <form id="mouse-form"><fieldset ${locked ? 'disabled' : ''}>
-      <div class="settings-grid"><div class="panel sensitivity"><div class="panel-title">${icon('sliders-horizontal')}<h3>Sensitivity</h3><span class="mini-tag">DPI</span></div><p>Set the sensitivity of your active DPI stage.</p><label class="field-label" for="dpi">DPI value</label><select id="dpi" required ${!dpiValues.length ? 'disabled' : ''}>${dpiValues.length ? options(dpiValues, s?.dpi ?? 1600) : '<option>Connect to read DPI</option>'}</select><div class="dpi-presets">${[400, 800, 1600, 3200].map(value => `<button type="button" data-dpi="${value}" ${!dpiValues.includes(value) ? 'disabled' : ''} class="preset ${s?.dpi === value ? 'chosen' : ''}">${value}</button>`).join('')}</div><div class="mini-chart" aria-hidden="true">${[12, 18, 24, 30, 38, 46, 55, 66, 78, 92, 100, 100, 100, 100, 100, 100].map((h, i) => `<span style="height:${h}%;opacity:${0.25 + i / 22}"></span>`).join('')}</div><div class="chart-labels"><span>MORE CONTROL</span><span>MORE SPEED</span></div></div>
-      <div class="panel"><div class="panel-title">${icon('activity')}<h3>Performance</h3></div><p>Fine-tune response and click timing.</p><label class="field-label" for="polling">Polling rate</label><select id="polling" ${!polling.length ? 'disabled' : ''}>${polling.length ? ((!demo&&mouseStatus?.pollingReadVerified===false)?'<option value="" selected disabled>Current rate unknown — choose a rate to verify</option>':'')+options(polling, (!demo&&mouseStatus?.pollingReadVerified===false)?-1:s?.pollingRateHz ?? 1000, ' Hz') : '<option>Connect to read rates</option>'}</select><small class="field-help">Only rates supported by your receiver are offered.</small><label class="field-label spaced" for="debounce">Click debounce</label><select id="debounce" required ${!demo&&s?.debounceMs==null?'disabled':''}>${debounce.length ? options(debounce, s?.debounceMs ?? 4, ' ms') : '<option>Connect to read timing</option>'}</select><small class="field-help">Lower values reduce the delay between clicks.</small></div>
-      <div class="panel processing"><div class="panel-title">${icon('zap')}<h3>Sensor behavior</h3></div><p>Choose how your mouse processes movement.</p>${toggle('motion', 'Motion sync', 'Synchronize sensor data with USB reports.', s?.motionSync ?? false, locked || (!demo && mouseStatus?.motionSync == null))}${toggle('angle', 'Angle snapping', 'Straighten movement along a line.', s?.angleSnapping ?? false, locked || (!demo && mouseStatus?.angleSnapping == null))}${toggle('ripple', 'Ripple control', 'Smooth sensor jitter at higher DPI.', s?.rippleControl ?? false, locked || (!demo && mouseStatus?.rippleControl == null))}</div></div>
+      <div class="settings-grid"><div class="panel sensitivity"><div class="panel-title">${icon('sliders-horizontal')}<h3>Sensitivity</h3><span class="mini-tag">DPI</span></div><p>Set the sensitivity of your active DPI stage.</p><label class="field-label" for="dpi">DPI value</label><select id="dpi" required ${!dpiValues.length ? 'disabled' : ''}>${dpiValues.length ? options(dpiValues, editing?.dpi ?? 1600) : '<option>Connect to read DPI</option>'}</select><div class="dpi-presets">${[400, 800, 1600, 3200].map(value => `<button type="button" data-dpi="${value}" ${!dpiValues.includes(value) ? 'disabled' : ''} class="preset ${editing?.dpi === value ? 'chosen' : ''}">${value}</button>`).join('')}</div><div class="mini-chart" aria-hidden="true">${[12, 18, 24, 30, 38, 46, 55, 66, 78, 92, 100, 100, 100, 100, 100, 100].map((h, i) => `<span style="height:${h}%;opacity:${0.25 + i / 22}"></span>`).join('')}</div><div class="chart-labels"><span>MORE CONTROL</span><span>MORE SPEED</span></div></div>
+      <div class="panel"><div class="panel-title">${icon('activity')}<h3>Performance</h3></div><p>Fine-tune response and click timing.</p><label class="field-label" for="polling">Polling rate</label><select id="polling" ${!polling.length ? 'disabled' : ''}>${polling.length ? ((!demo&&mouseStatus?.pollingReadVerified===false&&!mouseDraft?.pollingRateHz)?'<option value="" selected disabled>Current rate unknown — choose a rate to verify</option>':'')+options(polling, mouseDraft?.pollingRateHz || ((!demo&&mouseStatus?.pollingReadVerified===false)?-1:s?.pollingRateHz ?? 1000), ' Hz') : '<option>Connect to read rates</option>'}</select><small class="field-help">Only rates supported by your receiver are offered.</small><label class="field-label spaced" for="debounce">Click debounce</label><select id="debounce" required ${!demo&&s?.debounceMs==null?'disabled':''}>${debounce.length ? options(debounce, editing?.debounceMs ?? 4, ' ms') : '<option>Connect to read timing</option>'}</select><small class="field-help">Lower values reduce the delay between clicks.</small></div>
+      <div class="panel processing"><div class="panel-title">${icon('zap')}<h3>Sensor behavior</h3></div><p>Choose how your mouse processes movement.</p>${toggle('motion', 'Motion sync', 'Synchronize sensor data with USB reports.', editing?.motionSync ?? false, locked || (!demo && mouseStatus?.motionSync == null))}${toggle('angle', 'Angle snapping', 'Straighten movement along a line.', editing?.angleSnapping ?? false, locked || (!demo && mouseStatus?.angleSnapping == null))}${toggle('ripple', 'Ripple control', 'Smooth sensor jitter at higher DPI.', editing?.rippleControl ?? false, locked || (!demo && mouseStatus?.rippleControl == null))}</div></div>
       <div class="apply-bar"><span>${icon('info')} ${mouse instanceof Sc620Client?'Changes apply to SC620 profile 1.':'Changes apply to the active onboard configuration.'}</span><button class="primary" type="submit">${icon('check')} ${demo ? 'Apply to preview' : 'Apply changes'}</button></div>
-    </fieldset></form>${mouseExtraPanel()}${mouse instanceof Sc620Client?sc620Panel():''}${!s ? '<div class="connect-hint">Connect a supported mouse or its receiver to unlock settings. Existing settings are read before anything changes.</div>' : ''}`;
+    </fieldset>${mouseApplyResult?'<div class="banner '+(mouseApplyResult.kind==='error'?'warning':'')+'" role="status">'+escape(mouseApplyResult.text)+'</div>':''}${mouseDraft&&!busy?'<div class="apply-bar"><span>Your selection is pending. The numbers above show the last device read.</span><button type="button" class="secondary" id="discard-mouse-draft">Cancel changes</button></div>':''}</form>${mouseExtraPanel()}${mouse instanceof Sc620Client?sc620Panel():''}${!s ? '<div class="connect-hint">Connect a supported mouse or its receiver to unlock settings. Existing settings are read before anything changes.</div>' : ''}`;
 }
 
 const rows: [string, string, number?][][] = [
@@ -454,17 +462,19 @@ function bind() {
   document.querySelector<HTMLInputElement>('#demo')!.onchange = async event => {
     const enabled = (event.target as HTMLInputElement).checked;
     if (mouse || keyboard) { notice('Disconnect your hardware before entering preview mode.'); render(); return; }
-    await stopTravel();demo = enabled; proData = null;lightDraft=null;advancedData=null;selectedProKeys.clear(); notice(demo ? 'Preview mode is active. Hardware will not be changed.' : 'Connect a device to read its current settings.'); render();
+    await stopTravel();demo = enabled;mouseDraft=null;mouseApplyResult=null; proData = null;lightDraft=null;advancedData=null;selectedProKeys.clear(); notice(demo ? 'Preview mode is active. Hardware will not be changed.' : 'Connect a device to read its current settings.'); render();
   };
   document.querySelector('#connect')?.addEventListener('click',()=>void connect());
   document.querySelector('#refresh')?.addEventListener('click', () => perform(async () => { await refresh(); notice('Current device settings refreshed.', 'success'); }));
-  document.querySelector('#disconnect')?.addEventListener('click', () => perform(async () => { if (view === 'mouse') { await mouse?.close(); mouse = null; mouseStatus = null; } else { await keyboard?.close(); keyboard = null; keyboardStatus = null; proData = null; selectedProKeys.clear(); } notice('Device disconnected.'); }));
+  document.querySelector('#disconnect')?.addEventListener('click', () => perform(async () => { if (view === 'mouse') { await mouse?.close(); mouse = null; mouseStatus = null; mouseDraft=null;mouseApplyResult=null; } else { await keyboard?.close(); keyboard = null; keyboardStatus = null; proData = null; selectedProKeys.clear(); } notice('Device disconnected.'); }));
   for (const id of ['about', 'source']) document.querySelector(`#${id}`)!.addEventListener('click', () => document.querySelector<HTMLDialogElement>('#about-dialog')!.showModal());
   document.querySelector('.close-dialog')!.addEventListener('click', () => document.querySelector<HTMLDialogElement>('#about-dialog')!.close());
   document.querySelector('#diagnostics')!.addEventListener('click', () => download('amouse-connection.json', JSON.stringify({ version: '0.1.0', browser: navigator.userAgent, webHid: supported(), mouse: mouse ? { vendor: hex(mouse.device.vendorId), product: hex(mouse.device.productId), name: mouseStatus?.name } : null, keyboard: keyboard ? { vendor: hex(keyboard.device.vendorId), product: hex(keyboard.device.productId), firmware: keyboardStatus?.firmware } : null }, null, 2)));
   if(home)return;
   if (view === 'mouse') {
-    document.querySelectorAll<HTMLButtonElement>('[data-dpi]').forEach(el => el.onclick = () => { document.querySelector<HTMLSelectElement>('#dpi')!.value = el.dataset.dpi!; document.querySelectorAll('.preset').forEach(p => p.classList.remove('chosen')); el.classList.add('chosen'); });
+    document.querySelectorAll<HTMLButtonElement>('[data-dpi]').forEach(el => el.onclick = () => { document.querySelector<HTMLSelectElement>('#dpi')!.value = el.dataset.dpi!; document.querySelectorAll('.preset').forEach(p => p.classList.remove('chosen')); el.classList.add('chosen'); mouseDraft=readMouseDraft();mouseApplyResult=null;render(); });
+    document.querySelector('#mouse-form')?.addEventListener('change',()=>{mouseDraft=readMouseDraft();mouseApplyResult=null;render();});
+    document.querySelector('#discard-mouse-draft')?.addEventListener('click',()=>{mouseDraft=null;mouseApplyResult=null;render();});
     document.querySelector('#mouse-form')?.addEventListener('submit', event => { event.preventDefault(); applyMouse(); });
   } else {
     document.querySelector('#test-toggle')?.addEventListener('click', () => { tester = !tester; pressed.clear(); render(); });
@@ -520,7 +530,7 @@ async function connect(model?:'aula-sc620') {
       try {
         if (view === 'mouse') {
           const result = await connectMouse(device,model);
-          await mouse?.close(); sc620Edits=false;mouse = result.client; mouseStatus = result.status; chargingEstimate.samples=[];observeBattery();recordMouseTest('Connect / read profile',null,mouseStatus,true);if(result.client instanceof Sc620Client&&!mouseReport.consent)void openMouseReport(mouseStatus);
+          await mouse?.close(); sc620Edits=false;mouseDraft=null;mouseApplyResult=null;mouse = result.client; mouseStatus = result.status; chargingEstimate.samples=[];observeBattery();recordMouseTest('Connect / read profile',null,mouseStatus,true);if(result.client instanceof Sc620Client&&!mouseReport.consent)void openMouseReport(mouseStatus);
         } else {
           const result = await AceClient.connect(device);
           await keyboard?.close(); keyboard = result.client; keyboardStatus = result.status;
@@ -536,10 +546,9 @@ async function refresh() {
   if (view === 'keyboard' && keyboard) { keyboardStatus = await keyboard.readStatus(); proData = null; advancedData=null;lightDraft=null;selectedProKeys.clear(); }
 }
 function applyMouse() {
-  const number = (id: string) => Number(document.querySelector<HTMLSelectElement>(`#${id}`)!.value);
-  const checked = (id: string) => document.querySelector<HTMLInputElement>(`#${id}`)!.checked;
-  const next = { dpi: number('dpi'), pollingRateHz: number('polling'), debounceMs: number('debounce'), motionSync: checked('motion'), angleSnapping: checked('angle'), rippleControl: checked('ripple') };
-  if (demo) { demoMouse = next; notice('Preview mouse settings updated. No hardware was changed.', 'success'); render(); return; }
+  const next = readMouseDraft();
+  mouseDraft=next;mouseApplyResult={text:'Applying your selection and checking the device…',kind:'info'};
+  if (demo) { demoMouse = next; mouseDraft=null;mouseApplyResult=null;notice('Preview mouse settings updated. No hardware was changed.', 'success'); render(); return; }
   if (!mouse || !mouseStatus) return;
   const client = mouse;
   const before = mouseStatus;
@@ -556,11 +565,13 @@ function applyMouse() {
       if (failed.length) throw new Error(`Readback did not confirm: ${failed.map(([key]) => key).join(', ')}.`);
       if(next.pollingRateHz>0&&mouseStatus.pollingReadVerified===false)throw new Error('Polling rate is unconfirmed; no 1,000 Hz default is substituted.');
       recordMouseTest('Performance: DPI '+next.dpi+', polling '+next.pollingRateHz+' Hz, debounce '+next.debounceMs+' ms',before,mouseStatus,true);
+      mouseDraft=null;mouseApplyResult={text:'Saved. The device confirmed your settings.',kind:'success'};
       notice('Mouse settings applied and read back from the device.', 'success');
     } catch (error) {
       await refresh().catch(() => { mouseStatus = null; });
       recordMouseTest('Performance: DPI '+next.dpi+', polling '+next.pollingRateHz+' Hz, debounce '+next.debounceMs+' ms',before,mouseStatus,false);
-      throw new Error(`${error instanceof Error ? error.message : error} Some changes may have applied; review the refreshed values.`);
+      const text=`${error instanceof Error ? error.message : error} Your selection is kept in the controls. Some changes may have applied; the summary shows refreshed device values.`;
+      mouseApplyResult={text,kind:'error'};throw new Error(text);
     }
   });
 }
@@ -617,7 +628,7 @@ window.addEventListener('keydown', event => {
 window.addEventListener('keyup', event => { document.querySelectorAll<HTMLElement>('[data-browser-code]').forEach(el=>{if(el.dataset.browserCode===event.code)el.classList.remove('key-down');}); pressed.delete(event.code); updateTester(); });
 window.addEventListener('blur', () => { document.querySelectorAll('.key-down').forEach(el=>el.classList.remove('key-down'));pressed.clear(); updateTester(); });
 if ('hid' in navigator) navigator.hid.addEventListener('disconnect', event => {
-  if (mouse?.device === event.device) { mouse = null; mouseStatus = null; notice('Mouse unplugged. Connect it again to continue.'); }
+  if (mouse?.device === event.device) { mouse = null; mouseStatus = null; mouseDraft=null;mouseApplyResult=null; notice('Mouse unplugged. Connect it again to continue.'); }
   if (keyboard?.device === event.device) { void keyboard.close().catch(() => {}); keyboard = null; keyboardStatus = null;liveSession=false;calibrationSession=false;liveValues.clear();proData=null; notice('Keyboard unplugged. Connect it again to continue.'); }
   render();
 });

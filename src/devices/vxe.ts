@@ -1,5 +1,5 @@
 import { AtkHidClient } from '@openmouse/protocol/drivers/atk/hid';
-import { atkPackDpiStageForSensor, atkUnpackDpiStageForSensor, atkPackVxeR1PollingSetting, atkDecodeVxeR1PollingCode } from '@openmouse/protocol/atk';
+import { atkPackDpiStageForSensor, atkUnpackDpiStageForSensor, atkDecodeVxeR1PollingCode } from '@openmouse/protocol/atk';
 import type { MouseStatus as ProtocolMouseStatus } from '@openmouse/protocol/drivers/mouse-types';
 import { WE_CMD_READ_EEPROM, WE_CMD_WRITE_EEPROM, WE_REPORT_ID, weBuildCmdPayload, wePackScalarPair, weUnpackScalarPair, weReportChecksum } from '@openmouse/protocol/endgame-gear-we';
 export type MouseStatus = Omit<ProtocolMouseStatus,'brand'> & {brand:ProtocolMouseStatus['brand']|'AULA';pollingReadVerified?:boolean};
@@ -25,8 +25,14 @@ export class VxeClient extends AtkHidClient {
   private settingsQueue:Promise<unknown>=Promise.resolve();
   private settingsRun<T>(action:()=>Promise<T>){const next=this.settingsQueue.then(action,action);this.settingsQueue=next.catch(()=>{});return next;}
   private async r1Read(address:number,length:number){
-    const reply=await this.requestR1(weBuildCmdPayload(WE_CMD_READ_EEPROM,[0,address>>8,address&255,length]),r=>r[0]===WE_CMD_READ_EEPROM&&r[1]===0&&r[2]===(address>>8)&&r[3]===(address&255)&&r[4]===length);
-    return reply.slice(5,5+length);
+    // Reads may use the write-command ID on this firmware. Match the full
+    // address, bounded payload length and report checksum; retry reads only.
+    for(let attempt=0;attempt<3;attempt++){
+      try{const reply=await this.requestR1(weBuildCmdPayload(WE_CMD_READ_EEPROM,[0,address>>8,address&255,length]),r=>(r[0]===WE_CMD_READ_EEPROM||r[0]===WE_CMD_WRITE_EEPROM)&&r[1]===0&&r[2]===(address>>8)&&r[3]===(address&255)&&r[4]>=length&&r[4]<=10);
+        return reply.slice(5,5+length);
+      }catch(error){if(attempt===2)throw error;}
+    }
+    throw new Error('Receiver read unavailable.');
   }
   private async r1Write(address:number,data:Uint8Array){await this.device.sendReport(WE_REPORT_ID,new Uint8Array(weBuildCmdPayload(WE_CMD_WRITE_EEPROM,[0,address>>8,address&255,data.length,...data])).buffer);await new Promise(r=>setTimeout(r,300));}
   private async r1Layout(){
@@ -39,10 +45,15 @@ export class VxeClient extends AtkHidClient {
   override async setPollingRate(rate:number){
     if(!this.receiverPerformancePath())return super.setPollingRate(rate);
     return this.settingsRun(async()=>{
-      const packed=atkPackVxeR1PollingSetting(rate);if(!packed)throw new Error('Choose 250, 500 or 1,000 Hz for this R1 receiver.');
-      await this.r1Write(0x70,Uint8Array.from(packed));
-      for(let i=0;i<3;i++){const row=await this.r1Read(0x70,4);if(row[0]===0x0b&&row[2]===0&&(row[1]+row[3])%256===85&&atkDecodeVxeR1PollingCode(row[1])===rate)return rate;await new Promise(r=>setTimeout(r,150));}
-      throw new Error('R1 did not confirm the requested polling rate. No default rate is substituted. Close other configurators, move the mouse and try wired USB.');
+      const code=({250:3,500:2,1000:1} as Record<number,number>)[rate];if(!code)throw new Error('Choose 250, 500 or 1,000 Hz for this R1 receiver.');
+      const current=await this.r1Read(0,6);
+      if(weUnpackScalarPair(current[0],current[1])==null)throw new Error('R1 polling settings checksum failed.');
+      // CompX 3554:F58E/F58F uses the system scalar pair, not Beken's 0070 selector.
+      await this.r1Write(0,Uint8Array.from(wePackScalarPair(code)));
+      const after=await this.r1Read(0,6);
+      if(weUnpackScalarPair(after[0],after[1])!==code||!after.slice(2).every((v,i)=>v===current[i+2]))throw new Error('R1 did not confirm the polling rate while preserving its DPI stage settings.');
+      if(this.r1System)this.r1System=after;
+      return rate;
     });
   }
   override async setDpi(dpi:number,y=dpi){if(!this.receiverPerformancePath())return super.setDpi(dpi,y);if(y!==dpi)throw new Error('Separate X/Y editing is unavailable on this receiver.');const layout=await this.r1Layout();return this.setDpiStageValue(layout.active,dpi);}
@@ -88,8 +99,9 @@ export class VxeClient extends AtkHidClient {
       try{const layout=await this.r1Layout();this.r1System=layout.system;this.r1Stages=layout.stages;status.ui={...status.ui,dpiStageEditor:{maxStages:6,countEditable:false,minDpi:50,maxDpi:26000,stepDpi:50}};}catch{/* Stage writes remain locked without a complete layout. */}
     }
     if(this.receiverPerformancePath()){
-      const row=await this.r1Read(0x70,4).catch(()=>null);
-      const rate=row&&row[0]===0x0b&&row[2]===0&&(row[1]+row[3])%256===85?atkDecodeVxeR1PollingCode(row[1]):null;
+      const row=await this.r1Read(0,6).catch(()=>null);
+      const code=row?weUnpackScalarPair(row[0],row[1]):null;
+      const rate=code!=null?atkDecodeVxeR1PollingCode(code):null;
       (status as MouseStatus).pollingReadVerified=rate!=null;
       if(rate!=null)status.pollingRateHz=rate;
     }

@@ -31,9 +31,9 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.6. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.7. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.6/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.6.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.7/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.7.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -78,3 +78,9 @@ Check delay & optimize reads Windows pointer settings through bounded read-only 
 SC620 local reporting uses explicit v1 agreement, a settings whitelist and at most100 entries in localStorage. Baseline/connection/Apply outcomes are recorded only after consent; physical results are not inferred from readback. Reports are reviewed then copied or opened in a public GitHub issue form. Owner selected local copy/send, not an automatic online endpoint. No account tokens or automatic uploads. Delete stops recording and removes local results.
 
 Owner explicitly requested publishing this update to automatic updates. Use matching source archive and all four release assets.
+
+## Version 0.2.7 verified CompX correction
+
+The previous 0070 polling selector was incorrect for the owner's 3554:F58E R1. Actual hardware reads show system row 0000 [01 54 04 51 00 55]; 0070 contains unrelated [01 10 00 44]. Use only the first system scalar pair for CompX polling, preserving stage count/index. This differs from the 373B Beken live selector. Reads accept checksum-valid read or write IDs with bounded payloads, and retry reads only. Hardware test of the updated adapter AND the built app's full Apply form confirmed 800 DPI/500 Hz, then restored 1600 DPI/1000 Hz. Mock tests cover row preservation, firmware reply variants, stale stage state, and ignored writes. Do not generalize these physical results to other mice.
+
+Mouse performance selections survive rendering and failed Apply. The inline result appears beside Apply, and Cancel changes restores displayed device values. Disconnect, new device and preview changes clear drafts.
