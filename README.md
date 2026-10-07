@@ -110,3 +110,5 @@ Version 0.2.8 fixes CompX R1 debounce through its advanced settings pair, preser
 
 ### ATTACK SHARK X68HE (experimental)
 Add device → ATTACK SHARK X68HE, via wired USB. RGB and polling load from device and require write readback. Optional Hall effect slot values are read-only. Calibration, HE editing, analog depth and advanced bindings need further verification; use the official configurator for these. See X68-RESEARCH.md.
+
+Version 0.2.12 corrects X68HE polling/profile command separation, adds RGB keyboard illustration and effect tiles, digital key feedback, Load current settings and Cancel changes. X11 connection failures now open the reviewed local interface report automatically. Hardware confirmation is still needed.

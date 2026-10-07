@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 69. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 72. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,9 +31,9 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.11. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.12. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.11/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.11.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -96,7 +96,7 @@ Owner supplied `public/images/aula-sc620.png`, now used for the SC620 card and m
 
 MIT DPI source/provenance is in `desktop/vendor/x11`. node-hid and pkg-prebuilds are copied into staging and native `.node` files are ASAR-unpacked. Keep these dependencies and their licenses in installer packaging and corresponding source instructions. npm install reconstructs them. Regression tests include stale/ignored writes, unknown-byte preservation, model rejection and telemetry separation.
 
-## Version 0.2.11 Windows X11 receiver pairing
+## Version 0.2.10 Windows X11 receiver pairing
 
 A friend using the X11 2.4 GHz receiver reported “X11 event interface unavailable.” The original matcher removed `&colXX` only, which does not account for collection-specific Windows PnP instance suffixes. Native pairing now reads `DEVPKEY_Device_ContainerId` using bounded, hidden, read-only PowerShell, maps exact PnP instances internally, and requires a unique event collection in the command collection’s physical container. It never falls back to VID/PID alone. Missing event interface numbers are accepted only with a verified physical group or exact collection-normalized path. Ambiguous groups fail closed. Paths, serials and container identifiers remain private in the worker. Hardware model checks and settings readback remain mandatory.
 
@@ -104,3 +104,6 @@ Add device → X11 connection details opens a reviewed local report listing only
 
 ## X68HE initial support
 3151:502D configuration collection FFFF:0002; independent feature-report adapter in src/devices/x68.ts and separate dialog in src/x68-panel.ts. RGB/polling with stale checks and actual GET readback. Optional HE pages read-only; physical slot mapping, HE writes, calibration, analog stream and advanced bindings remain unverified and unavailable. See X68-RESEARCH.md. No physical X68HE available locally. Research checkout unlicensed; do not copy its implementation.
+
+## Version 0.2.12 X68HE polling correction and preview
+Official qmk.top current bundle corroborates HE polling GET83/SET03 and profile GET84/SET04. The earlier community-derived SET04 path was wrong for this protocol and could switch profile. It is removed: legacy-read fallback cannot write polling. SET commands are send-only then settings GET verifies both polling and unchanged profile; no SET ACK assumptions. X68 UI has a wide keyboard RGB illustration, effects tiles, digital input feedback, Load current settings and Cancel changes. Physical HE mapping/writes are still not enabled. X11 event collections on other interface numbers are allowed only when the OS confirms the same physical container; model-55 check still required. Failed native connects automatically open reviewed connection details for the friend to copy. Friend report is still needed to diagnose a receiver whose event collection is actually absent.
