@@ -96,3 +96,11 @@ Read [AI_HANDOFF.md](AI_HANDOFF.md) for architecture, current work and update se
 ## Windows device scanner
 
 Version 0.2.3 adds a read-only USB input-device scanner and simple MK app icon. Scan devices lets friends select and preview device names/IDs before opening a GitHub report form or copying/saving for group chat. Unsupported devices can be reported without opening or configuring them. Reports are not sent automatically. GitHub submission needs login; copying a report does not.
+
+## Mouse troubleshooting and SC620 reports
+
+Version0.2.6 removes the R1 receiver UI fallback that could display1,000 Hz after an unavailable polling read. The selector-based polling command waits for settling and requires an actual matching readback. Existing R1 DPI stages can be edited after a complete valid layout is read; every write preserves other stages and rejects stale data. Use the physical DPI button to switch stages on this receiver. Unknown reads and unsupported writes remain unavailable and need physical verification.
+
+Check delay & optimize previews a supported mouse preset, verifies each change and offers restoration. Windows pointer acceleration/speed are read only; opening Windows settings is optional. It does not claim zero delay or measure end-to-end input latency. See Microsoft’s input-latency guidance: https://learn.microsoft.com/en-us/windows/uwp/gaming/optimize-performance-for-windows-store-direct3d-11-apps-with-coredispatcher and pointer settings: https://support.microsoft.com/en-us/windows/hardware/input-devices/change-mouse-settings .
+
+SC620 users can agree to local test reporting. Connections and Apply results are recorded without raw packets, serials, paths, keystrokes or account information. Device readback and physical behavior are distinguished. Test report & agreement lets users review, copy, open a public GitHub form or delete/stop recording. Nothing is uploaded automatically.

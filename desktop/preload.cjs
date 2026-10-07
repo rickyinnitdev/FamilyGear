@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('familyGear', {
   choose: id => ipcRenderer.send('choose-device', id),
   community: () => ipcRenderer.invoke('community'),
   scanDevices: () => ipcRenderer.invoke('scan-devices'),
+  delayEnvironment: () => ipcRenderer.invoke('delay-environment'),
+  openMouseSettings: () => ipcRenderer.invoke('open-mouse-settings'),
   copyReport: text => ipcRenderer.invoke('copy-report', text),
   source: () => ipcRenderer.send('open-source'),
   updateState: () => ipcRenderer.invoke('update-state'),

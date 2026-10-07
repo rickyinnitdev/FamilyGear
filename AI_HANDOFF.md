@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 48. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 52. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,9 +31,9 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.5. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.6. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.5/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.5.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.6/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.6.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -68,3 +68,13 @@ Scanner now includes only present/OK USB Mouse or Keyboard device families, grou
 ## Version 0.2.5 SC620 support
 
 Official SC620 driver archive inspected statically; vendor executable was not run or bundled. Read SC620-RESEARCH.md for IDs, packet offsets and unresolved capabilities. src/devices/sc620.ts uses the SC620-specific 0x2E config length and 0x2C eleven-slot key map; preserve all unknown fields. Shared OEM IDs require a matching SC620 product name or explicit Add AULA SC620 selection. Only profile 1 is implemented; active-profile identity is unknown. Battery-only periodic reads never replace the displayed config snapshot. Every edit requires user opt-in, stale-state rejection and full readback. Left click remains locked. Physical SC620 verification is outstanding. No release publication is implied by a build.
+
+## Version 0.2.6 mouse fixes and reporting
+
+R1 3554:F58E/F58F identified specifically as VXE R1: polling selector 0B at 0070 requires valid checksum and actual readback after a settling delay. pollingReadVerified=false means unknown; UI must never display the upstream 1000 Hz fallback. DPI editing is available after complete checksum-valid system and stage reads, stale-state comparison and full readback. Stage switching/count are unavailable on this receiver; use physical DPI button. These paths need physical validation; strict reads may remain unavailable on firmware that responds with write-command IDs.
+
+Check delay & optimize reads Windows pointer settings through bounded read-only IPC; it previews supported mouse polling (at most1000 Hz), debounce (2–4 ms) and motion-sync changes, with restore. It does not promise zero latency, measure end-to-end latency, automatically modify Windows or identify the cause of a game lag.
+
+SC620 local reporting uses explicit v1 agreement, a settings whitelist and at most100 entries in localStorage. Baseline/connection/Apply outcomes are recorded only after consent; physical results are not inferred from readback. Reports are reviewed then copied or opened in a public GitHub issue form. Owner selected local copy/send, not an automatic online endpoint. No account tokens or automatic uploads. Delete stops recording and removes local results.
+
+Owner explicitly requested publishing this update to automatic updates. Use matching source archive and all four release assets.

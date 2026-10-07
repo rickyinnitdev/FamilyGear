@@ -3,6 +3,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
 const { scanDevices } = require('./scanner.cjs');
+const { delayEnvironment } = require('./delay.cjs');
 const { createUpdates } = require('./updates.cjs');
 protocol.registerSchemesAsPrivileged([{ scheme: 'familygear', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 app.setName('Family Gear');
@@ -13,6 +14,8 @@ let updates, restarting = false, allowClose = false;
 const trusted = url => { try { const u = new URL(url); return u.protocol === 'familygear:' && u.host === 'app'; } catch { return false; } };
 function finish(id = '') { const callback = pending; pending = null; if (picker && !picker.isDestroyed()) picker.close(); picker = null; callback?.(id); }
 app.whenReady().then(async () => {
+  ipcMain.handle('delay-environment',event=>{if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw new Error('Untrusted request.');return delayEnvironment();});
+  ipcMain.handle('open-mouse-settings',event=>{if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw new Error('Untrusted request.');return shell.openExternal('ms-settings:mousetouchpad');});
   protocol.handle('familygear', request => {
     const url = new URL(request.url);
     if (!trusted(request.url)) return new Response('Forbidden', { status: 403 });

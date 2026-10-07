@@ -10,6 +10,8 @@ interface Window {
     source(): void;
     community(): Promise<string | null>;
     scanDevices(): Promise<ScannedDevice[]>;
+    delayEnvironment(): Promise<{acceleration:boolean;pointerSpeed:number}>;
+    openMouseSettings(): Promise<void>;
     copyReport(text: string): Promise<void>;
   };
 }
