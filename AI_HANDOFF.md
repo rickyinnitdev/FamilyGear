@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 40. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 48. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -27,13 +27,13 @@ Welcome home, Add device cards using supplied artwork, hover effects, dark/cream
 
 Read current hardware settings rather than supplying defaults. Ace Pro Quick Trigger (mode 1) and continuous Rapid Trigger (mode 2) are distinct; preserve the loaded mode. Pro brightness is 0–100, not 0–4. Analog travel must come from measured reports, not fabricated animations. Restore debug/calibration state when ending sessions. Preserve unrelated keys, layers, shared banks and unknown bytes; reject stale state and require device readback after writes.
 
-Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 60 Pro firmware 1.18, and model-specific ATTACK SHARK GearHub/CompX adapters. X11 needs an unimplemented native bridge. AULA support awaits an exact model/protocol; do not advertise universal support. See tests and README for details.
+Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 60 Pro firmware 1.18, and model-specific ATTACK SHARK GearHub/CompX adapters. X11 needs an unimplemented native bridge. AULA SC620 has a separate experimental independently authored adapter. Other AULA models are unsupported; do not advertise universal support. See tests and README for details.
 
 ## Windows packaging
 
-Current version: 0.2.4. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.5. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.4/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.4.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.5/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.5.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -64,3 +64,7 @@ Friends choose rows, supply the actual model name/feature requests and preview. 
 ## Version 0.2.4 scanner grouping
 
 Scanner now includes only present/OK USB Mouse or Keyboard device families, groups interfaces with Windows ContainerId internally, and prefers the USB bus-reported product name. Container IDs never enter the renderer or reports. Two identical physical devices remain separate when Container IDs are available; missing IDs fall back to VID/PID grouping. HID-only audio/radio/vendor entries and hubs are excluded. This identifies connected working devices; it does not track which mouse is currently moving or keyboard is being typed on.
+
+## Version 0.2.5 SC620 support
+
+Official SC620 driver archive inspected statically; vendor executable was not run or bundled. Read SC620-RESEARCH.md for IDs, packet offsets and unresolved capabilities. src/devices/sc620.ts uses the SC620-specific 0x2E config length and 0x2C eleven-slot key map; preserve all unknown fields. Shared OEM IDs require a matching SC620 product name or explicit Add AULA SC620 selection. Only profile 1 is implemented; active-profile identity is unknown. Battery-only periodic reads never replace the displayed config snapshot. Every edit requires user opt-in, stale-state rejection and full readback. Left click remains locked. Physical SC620 verification is outstanding. No release publication is implied by a build.

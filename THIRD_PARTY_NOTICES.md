@@ -71,3 +71,7 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+## AULA SC620 protocol research
+
+The SC620 adapter is independently authored from static observations of the official AULA SC620 Windows driver archive linked at https://aulagear.com/blogs/software/aula-sc620-driver. Vendor executables, extracted resources and product artwork are not distributed with this adapter. See SC620-RESEARCH.md for provenance and limitations. Existing OpenMouse notices remain applicable to the other drivers.

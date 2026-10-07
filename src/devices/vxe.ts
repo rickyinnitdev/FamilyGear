@@ -1,7 +1,7 @@
 import { AtkHidClient } from '@openmouse/protocol/drivers/atk/hid';
-import type { MouseStatus } from '@openmouse/protocol/drivers/mouse-types';
+import type { MouseStatus as ProtocolMouseStatus } from '@openmouse/protocol/drivers/mouse-types';
 import { WE_CMD_READ_EEPROM, WE_CMD_WRITE_EEPROM, WE_REPORT_ID, weBuildCmdPayload, wePackScalarPair, weUnpackScalarPair, weReportChecksum } from '@openmouse/protocol/endgame-gear-we';
-export { type MouseStatus };
+export type MouseStatus = Omit<ProtocolMouseStatus,'brand'> & {brand:ProtocolMouseStatus['brand']|'AULA'};
 export const VXE_FILTERS: HIDDeviceFilter[] = [
   { vendorId: 0x373b, productId: 0x1085 },
   ...[0xf58a, 0xf58c, 0xf58e, 0xf58f].map(productId => ({ vendorId: 0x3554, productId })),

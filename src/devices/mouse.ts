@@ -4,8 +4,10 @@ import { LamzuHidClient } from '@openmouse/protocol/drivers/lamzu/hid';
 import { GEARHUB_PRODUCTS } from '@openmouse/protocol/gearhub';
 import { LAMZU_PRODUCTS } from '@openmouse/protocol/lamzu';
 import { connectVxe, VXE_FILTERS, type MouseStatus } from './vxe';
+import { Sc620Client, SC620_FILTERS, sc620IsSupported } from './sc620';
 
 export const MOUSE_FILTERS: HIDDeviceFilter[] = [...VXE_FILTERS,
+  ...SC620_FILTERS,
   ...[...GEARHUB_PRODUCTS.keys()].filter(id=>id!==0x402c).map(productId=>({vendorId:0x3151,productId})),
   ...[...LAMZU_PRODUCTS].filter(([,p])=>p.brand==='Attack Shark').map(([productId])=>({vendorId:0x373e,productId})),
   ...[0xfa55,0xfa60].map(productId=>({vendorId:0x1d57,productId})),
@@ -67,11 +69,15 @@ export class SharkClient {
   setActiveDpiStage=this.setter('setActiveDpiStage');
   setR1ActiveProfile=this.setter('setR1ActiveProfile');
 }
-export async function connectMouse(device:HIDDevice){
+export async function connectMouse(device:HIDDevice,model?:'aula-sc620'){
+  if(sc620IsSupported(device,model==='aula-sc620')){
+    const client=new Sc620Client(device);
+    try{return {client,status:await client.readStatus()};}catch(error){await client.close().catch(()=>{});throw error;}
+  }
   if(device.vendorId===0x1d57)throw new Error('ATTACK SHARK X11-family settings need a native bridge on Windows. This web app has no bridge connection yet; no device settings were changed.');
   if(VXE_FILTERS.some(f=>f.vendorId===device.vendorId&&f.productId===device.productId))return connectVxe(device);
   const driver=GearHubHidClient.isSupported(device)?new GearHubHidClient(device):LamzuHidClient.isSupported(device)&&LAMZU_PRODUCTS.get(device.productId)?.brand==='Attack Shark'?new LamzuHidClient(device):null;
-  if(!driver)throw new Error('No verified protocol match for this configuration interface. AULA mouse support needs an exact model and driver.');
+  if(!driver)throw new Error('No verified protocol match for this configuration interface. For an AULA SC620, use Add AULA SC620 and select its USB or 2.4 GHz configuration interface. Other AULA models are unsupported.');
   const client=new SharkClient(driver);
   try{return {client,status:await client.readStatus()};}catch(error){await client.close().catch(()=>{});throw error;}
 }

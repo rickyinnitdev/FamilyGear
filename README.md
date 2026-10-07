@@ -1,6 +1,6 @@
 # Family Gear Device Studio
 
-A local TypeScript web app for VXE R1-family mice and MCHOSE Ace keyboards. Built with Vite and OpenMouse's device drivers.
+A local TypeScript device studio for VXE R1-family mice, selected ATTACK SHARK mice, AULA SC620 and MCHOSE Ace keyboards. Built with Vite and OpenMouse's device drivers.
 
 ## Run
 
@@ -22,11 +22,12 @@ The source dependency is pinned to an exact OpenMouse commit. The lockfile recor
 | VXE R1 / R1 SE+ / R1 Pro Max on known R1 transports | Battery, firmware, DPI, polling, debounce, motion sync, angle snapping, ripple control; capability-dependent sleep, LOD, sensor performance, long range, DPI indicator, DPI stages/X-Y and profile switching | Only 373B:1085 and 3554:F58A/F58C/F58E/F58F transport IDs. Unsupported controls are disabled. Stage editing requires a verified upstream transport; an ordinary wireless R1 may need wired USB. Button mappings are inspection-only. |
 | MCHOSE Ace 60, 41E4:2101 | Firmware, read travel records, experimental actuation and RT distance writes, JSON backup | Community protocol port; not tested on physical hardware in this session. Hardware slot IDs are not mapped to key labels. Preserves switch types, modes, precision/deadzone bits. Does not enable or disable RT modes. |
 | MCHOSE Ace 60 Pro, 41E4:2103, firmware 1.18 | 22 lighting effect tiles, RGB keyboard simulation, RGB/multicolor, 0–100% brightness and speed; per-key actuation, RT modes/distances and deadzones; basic remapping across four layers; Hold/Tap, RS, SOCD and four-action DKS; polling, Windows lock, Mac mode, debounce optimization, stability and adaptive calibration | Experimental independent protocol implementation. Trigger editing supports Default switch keys in Normal/RT modes and preserves existing precision. Advanced writes preserve shared action banks and require full readback. Hardware behavior requires testing on your device. Nordic and other variants are not included. |
+| AULA SC620 (experimental) | Profile-1 current settings; six DPI stages, 125–1,000 Hz polling, debounce, LOD, sleep, sensor-performance mode, wheel direction, seven built-in RGB options including Off, basic button actions and battery telemetry | USB/2.4 GHz only, matching configuration interface and explicit model selection required for generic names. Not physically tested. Edits require opt-in and complete readback. Macros, sensor-processing flags, active-profile switching and custom RGB colors/speed remain unavailable. See [SC620-RESEARCH.md](SC620-RESEARCH.md). |
 | Any keyboard with normal browser events | 60% ANSI key tester | Digital presses only; does not measure analog depth. Fn and OS shortcuts may not reach the browser. |
 
 **Preview mode** uses clearly labeled sample data. It never connects to hardware or sends reports. Disconnect hardware before using it.
 
-Not yet implemented: mouse remapping/macros, keyboard media/mouse/shortcut actions, custom per-key lighting, custom DKS timing, manual switch calibration, keyboard profile creation/switching, cloud sync, backup restore/import, receiver pairing, reset, firmware flashing, native bridge or gamepad emulation. Device pages link to the official configurators for these functions. A failed multi-key write may have applied some records; reload the device before proceeding. Backups are raw snapshots, not an automatic restore utility.
+Not yet implemented: mouse macros, general mouse remapping beyond the model-specific basic action editors, keyboard media/mouse/shortcut actions, custom per-key lighting, custom DKS timing, manual switch calibration, keyboard profile creation/switching, cloud sync, backup restore/import, receiver pairing, reset, firmware flashing, native bridge or gamepad emulation. Device pages link to the official configurators for these functions. A failed multi-key write may have applied some records; reload the device before proceeding. Backups are raw snapshots, not an automatic restore utility.
 
 The brightness bug in the earlier version is corrected: writing 4 meant **4%**, not full brightness. Choose **100%** and Apply lighting to raise it; existing device settings are never silently changed. The RGB keyboard is a visual simulation, not live LED telemetry.
 
