@@ -250,6 +250,7 @@ var DPI_3311 = [
 ];
 
 // desktop/vendor/x11/dpi.ts
+module.exports.DPI_3311 = DPI_3311;
 function convertDpiToBytes(dpi) {
   const clampedDpi = Math.max(50, Math.min(dpi, 26e3));
   if (clampedDpi === 20100) {

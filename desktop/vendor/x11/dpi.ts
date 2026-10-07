@@ -96,3 +96,5 @@ export function convertBytesToDpi(xByte: number, yByte: number, isDouble: boolea
 	return Math.min(dpiValue, 26000);
 }
 
+
+export { DPI_3311 };

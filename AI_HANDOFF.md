@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 94. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 96. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.18. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.19. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -127,3 +127,6 @@ X11 latest friend report fails interfaces before settings. Batched Windows paren
 
 ## Version 0.2.18 X11 deadline and targeted discovery
 Fixed outer IPC connect deadline (30 seconds) racing bounded Windows metadata helper (also 30 seconds). Connect allows 60 seconds for metadata, model identity and strict complete settings reads; other operations retain 30 seconds. Windows queries only exact HID instance IDs derived from the enumerated X11 paths, passed base64 JSON inside encoded PowerShell, instead of enumerating every present PC device. Parent/container verification and ambiguity rejection remain unchanged. Connection progress UI explains first-connection timing. 94 tests and build pass. No physical X11 attached; do not claim confirmed hardware connection.
+
+## Version 0.2.19 DPI GET aliases
+Friend X11 0.2.18 report confirms interfaces passed, settings failed with Unrecognized X11 DPI encoding. Removed incorrect GET-to-preferred-SET byte identity requirement: documented table codes may appear with 50/100-step storage and low-range double flags. Reads validate known table membership, y format, bounded decoded DPI and existing multiplier/header/checksum checks. No permissive default for unknown bytes. Writes still require exact encoder roundtrip, preserve unrelated bytes and full readback. Regression tests cover aliases and corrupt formats. 96 tests/build pass; no physical X11 confirmation.
