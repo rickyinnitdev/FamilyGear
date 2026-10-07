@@ -17,6 +17,8 @@ let updates, restarting = false, allowClose = false;
 const trusted = url => { try { const u = new URL(url); return u.protocol === 'familygear:' && u.host === 'app'; } catch { return false; } };
 function finish(id = '') { const callback = pending; pending = null; if (picker && !picker.isDestroyed()) picker.close(); picker = null; callback?.(id); }
 app.whenReady().then(async () => {
+  const hidPermissions=require('./hid-permissions.cjs').createPermissions(app.getPath('userData'));
+  session.defaultSession.setDevicePermissionHandler(details=>trusted(details.origin)&&details.deviceType==='hid'&&hidPermissions.allow(details.device));
   ipcMain.handle('x11', (event,op,args) => {if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw new Error('Untrusted request.');return x11.request(op,args);});
   ipcMain.handle('delay-environment',event=>{if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw new Error('Untrusted request.');return delayEnvironment();});
   ipcMain.handle('open-mouse-settings',event=>{if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw new Error('Untrusted request.');return shell.openExternal('ms-settings:mousetouchpad');});
@@ -40,7 +42,7 @@ app.whenReady().then(async () => {
   });
   session.defaultSession.on('hid-device-added', (_, device) => { if (pending) { devices.push(device); picker?.webContents.send('devices', devices); } });
   session.defaultSession.on('hid-device-removed', (_, device) => { devices = devices.filter(d => d.deviceId !== device.deviceId); picker?.webContents.send('devices', devices); });
-  ipcMain.on('choose-device', (event, id) => { if (event.sender === picker?.webContents) finish(devices.some(d => d.deviceId === id) ? id : ''); });
+  ipcMain.on('choose-device', (event, id) => { if (event.sender !== picker?.webContents) return; const selected=devices.find(d=>d.deviceId===id);if(selected)hidPermissions.remember(selected);finish(selected?id:''); });
   ipcMain.on('open-source', event => { if (event.sender === main?.webContents) shell.openPath(fs.existsSync(path.join(process.resourcesPath, 'Family-Gear-source.zip')) ? process.resourcesPath : path.dirname(app.getPath('exe'))); });
   ipcMain.handle('scan-devices', event => {
     if (event.sender !== main?.webContents || !trusted(event.sender.getURL())) throw new Error('Untrusted scan request.');

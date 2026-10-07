@@ -1,0 +1,7 @@
+export type SavedDevice={kind:'mouse'|'keyboard'|'x68'|'x11';vendorId:number;productId:number;name:string;collections?:string;model?:'aula-sc620'};
+const key='family-gear-saved-devices-v1';
+export function savedDevices():SavedDevice[]{try{const rows=JSON.parse(localStorage.getItem(key)??'[]');return Array.isArray(rows)?rows.filter(r=>r&&['mouse','keyboard','x68','x11'].includes(r.kind)&&Number.isInteger(r.vendorId)&&Number.isInteger(r.productId)&&typeof r.name==='string').slice(0,8):[];}catch{return [];}}
+function signature(device:Pick<HIDDevice,'collections'>){return JSON.stringify(device.collections.map(c=>[c.usagePage,c.usage]).sort());}
+export function rememberDevice(kind:SavedDevice['kind'],device:Pick<HIDDevice,'vendorId'|'productId'|'productName'> & Partial<Pick<HIDDevice,'collections'>>,model?:SavedDevice['model']){const row:SavedDevice={kind,vendorId:device.vendorId,productId:device.productId,name:device.productName||'Saved device',...(device.collections?{collections:signature(device as HIDDevice)}:{}),...(model?{model}:{})};const rows=savedDevices().filter(r=>kind==='mouse'||kind==='x11'?r.kind!=='mouse'&&r.kind!=='x11':r.kind!==kind);localStorage.setItem(key,JSON.stringify([...rows,row]));}
+export function forgetDevices(){localStorage.removeItem(key);}
+export function matchSaved(row:SavedDevice,devices:HIDDevice[]){return devices.filter(d=>d.vendorId===row.vendorId&&d.productId===row.productId&&(!row.collections||signature(d)===row.collections));}
