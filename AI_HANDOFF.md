@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 83. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 86. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.14. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.15. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -113,3 +113,6 @@ Owner deployed the Google Forms inbox in public/report-inbox.json. An anonymous 
 
 ## X68HE workspace update 0.2.14
 X68 opens in the main keyboard workspace with Lighting, Key tester, Trigger, Advanced keys, Performance and Device tabs. RGB is an illustration driven by selected/read settings, while pressed highlights are digital keyboard input. HE E5 reads are raw 64-byte pages; GET8F firmware selects legacy 0.1 mm or modern u16 1/100 or 1/200 representation. Repeat all parameters before accepting them. Physical slots are never assumed: release/hold verification via read-only E5 FE records each selected key. SET65 writes actuation, release, RT and bottom deadzone only for verified normal-mode keys, preserves unrelated bytes, rejects stale state and verifies full readback. Disabled RT preserves its unused sensitivity bytes. DKS/MT/TGL/Snap Tap editing, calibration, remapping and continuous analog streaming remain unavailable. No physical X68 device was available for testing; unit and Electron UI tests are mocked. X11 receiver report 1D57:FA60 still shows failed connection; no X11 fix in this release.
+
+## X11 pairing update 0.2.15
+The friend report has both page 0A and 0B collections on interface 2. Native Windows pairing now traverses DEVPKEY_Device_Parent with a bounded cached read-only query, up to eight ancestors, to the exact matching USB VID/PID composite receiver instance. This verified physical ancestor is preferred over collection ContainerIds; USB hubs, interface parents and another PID are rejected. Parent identities and serials stay private. Different identical receivers cannot cross-pair; ambiguous event collections are refused. Failed automatic reports now include whitelisted interfaces and settings-read stage outcomes, so pairing failure can be distinguished from model identity timeout or settings read failure. Existing consent and Google receiver schema are unchanged. 86 mocked tests and build pass. No physical X11 is attached here; the new pairing correction still needs the friend to reconnect/test.

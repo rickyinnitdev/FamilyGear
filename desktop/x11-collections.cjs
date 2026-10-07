@@ -9,13 +9,31 @@ const script=String.raw`
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 $devices = @(Get-PnpDevice -PresentOnly -ErrorAction Stop | Where-Object { $_.InstanceId -match '^HID\\VID_1D57&PID_(FA55|FA60)' })
+$parentCache = @{}
 $rows = @($devices | ForEach-Object {
   $container = Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_ContainerId' -ErrorAction SilentlyContinue
-  [pscustomobject]@{ instanceId = $_.InstanceId; containerId = [string]$container.Data }
+  $cursor = $_.InstanceId
+  $physicalParent = ''
+  for ($depth = 0; $depth -lt 8 -and $cursor; $depth++) {
+    if (-not $parentCache.ContainsKey($cursor)) {
+      $property = Get-PnpDeviceProperty -InstanceId $cursor -KeyName 'DEVPKEY_Device_Parent' -ErrorAction SilentlyContinue
+      $parentCache[$cursor] = [string]$property.Data
+    }
+    $parent = $parentCache[$cursor]
+    if (-not $parent -or $parent -eq $cursor) { break }
+    if ($parent -match '^USB\\VID_1D57&PID_(FA55|FA60)\\[^\\]+$') { $physicalParent = $parent; break }
+    $cursor = $parent
+  }
+  [pscustomobject]@{ instanceId = $_.InstanceId; containerId = [string]$container.Data; physicalParentId = $physicalParent }
 })
 ConvertTo-Json -InputObject $rows -Compress
 `;
-function containerMap(devices,rows){const byInstance=new Map();for(const row of Array.isArray(rows)?rows:[]){if(typeof row.instanceId!=='string'||typeof row.containerId!=='string')continue;const id=row.containerId.toLowerCase();if(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id)&&id!=='00000000-0000-0000-0000-000000000000')byInstance.set(row.instanceId.toUpperCase(),id);}return new Map(devices.filter(isX11).flatMap(d=>{const id=byInstance.get(instanceFromPath(d.path));return id?[[d.path,id]]:[];}));}
+function containerMap(devices,rows){const byInstance=new Map();for(const row of Array.isArray(rows)?rows:[]){if(typeof row.instanceId!=='string')continue;const instance=row.instanceId.toUpperCase(),parent=typeof row.physicalParentId==='string'?row.physicalParentId.toUpperCase():'';
+ const child=/^HID\\VID_1D57&PID_(FA55|FA60)(?:&[^\\]*)?\\[^\\]+$/.exec(instance),physical=/^USB\\VID_1D57&PID_(FA55|FA60)\\[^\\]+$/.exec(parent);
+ // OS-traversed composite parent is the actual receiver, not its host USB hub.
+ // It remains internal: never expose this instance/serial string in reports.
+ if(child&&physical&&child[1]===physical[1]){byInstance.set(instance,'usb:'+parent);continue;}
+ const id=typeof row.containerId==='string'?row.containerId.toLowerCase():'';if(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id)&&id!=='00000000-0000-0000-0000-000000000000')byInstance.set(instance,id);}return new Map(devices.filter(isX11).flatMap(d=>{const id=byInstance.get(instanceFromPath(d.path));return id?[[d.path,id]]:[];}));}
 async function windowsContainers(devices,run=execute){if(process.platform!=='win32'||!devices.some(d=>instanceFromPath(d.path)))return new Map();try{const {stdout}=await run('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{windowsHide:true,timeout:10000,maxBuffer:256*1024,encoding:'utf8'});return containerMap(devices,JSON.parse(stdout.replace(/^\uFEFF/,'').trim()));}catch{return new Map();}}
 async function eventCollection(command,devices,resolve=windowsContainers){const candidates=devices.filter(d=>d.vendorId===command.vendorId&&d.productId===command.productId&&d.usagePage===0x0a);
  const paths=await resolve([command,...candidates]),container=paths.get(command.path);

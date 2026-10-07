@@ -1,6 +1,6 @@
 export type SmokeCheck={name:string;result:'passed'|'failed'|'unavailable'|'not-tested'};
 export type SmokeReport={id:string;format:'family-gear-smoke-v1';version:string;type:'mouse'|'keyboard';vendorId:number;productId:number;checks:SmokeCheck[];interfaces?:unknown[]};
-const VERSION='0.2.14',KEY='family-gear-automatic-reports-v1';
+const VERSION='0.2.15',KEY='family-gear-automatic-reports-v1';
 let consent=localStorage.getItem(KEY)==='yes',preference:Promise<boolean>|null=null;
 let queue:SmokeReport[]=[];try{const saved=JSON.parse(localStorage.getItem(KEY+'-pending')??'[]');if(Array.isArray(saved))queue=saved.slice(-8);}catch{}
 function save(){localStorage.setItem(KEY+'-pending',JSON.stringify(queue));}
@@ -24,7 +24,7 @@ export async function smokeDevice(type:'mouse'|'keyboard',device:{vendorId:numbe
  else {check('polling-read',status.pollingWritable===true);check('lighting-read',Boolean(status.light||status.lighting));check('trigger-read',Array.isArray(status.keys)&&status.keys.length>0||status.travel instanceof Map&&status.travel.size>0);}
  checks.push({name:'physical-behavior',result:'not-tested'});await collect({id:crypto.randomUUID(),format:'family-gear-smoke-v1',version:VERSION,type,vendorId:device.vendorId,productId:device.productId,checks});
 }
-export async function failedConnection(type:'mouse'|'keyboard',device:{vendorId:number;productId:number},interfaces?:unknown[]){await collect({id:crypto.randomUUID(),format:'family-gear-smoke-v1',version:VERSION,type,vendorId:device.vendorId,productId:device.productId,checks:[{name:'connection',result:'failed'},{name:'physical-behavior',result:'not-tested'}],interfaces});}
+export async function failedConnection(type:'mouse'|'keyboard',device:{vendorId:number;productId:number},interfaces?:unknown[],diagnostics?:SmokeCheck[]){const extra=(Array.isArray(diagnostics)?diagnostics:[]).filter(c=>['interfaces','settings-read'].includes(c.name)&&['passed','failed','not-tested'].includes(c.result)).slice(0,2);await collect({id:crypto.randomUUID(),format:'family-gear-smoke-v1',version:VERSION,type,vendorId:device.vendorId,productId:device.productId,checks:[{name:'connection',result:'failed'},...extra,{name:'physical-behavior',result:'not-tested'}],interfaces});}
 async function collect(report:SmokeReport){try{
  if(!await allow())return;
  const stamp=KEY+`-${report.version}-${report.vendorId}-${report.productId}-${report.checks[0].result}-${new Date().toISOString().slice(0,10)}`;
