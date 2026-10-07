@@ -19,6 +19,7 @@ export type X68Trigger={actuation:number;release:number;press:number;reset:numbe
 export class X68Client {
   private queue: Promise<unknown> = Promise.resolve();
   private verifiedKeys=new Map<string,number>();
+  private mappingFirmware:number|undefined;
   private mappingBaseline:{code:string;profile:number;firmware:number|undefined;bytes:Uint8Array}|null=null;
   constructor(readonly device: HIDDevice,private wait:(ms:number)=>Promise<void>=ms=>new Promise(r=>setTimeout(r,ms))) {}
   private serial<T>(action: () => Promise<T>): Promise<T> { const task = this.queue.then(action); this.queue = task.catch(() => {}); return task; }
@@ -34,7 +35,7 @@ export class X68Client {
     const client = new X68Client(device);
     try { return { client, state: await client.read() }; } catch (error) { await device.close(); throw error; }
   }
-  private async readUnlocked(): Promise<X68State> {
+  private async readUnlocked(includeTriggers=true): Promise<X68State> {
     // The current official ry5088 HE driver uses GET83/SET03 for polling,
     // GET84 for profile. SET04 switches profiles: never use it as a fallback.
     let pollingWritable = false, rate: Uint8Array, profile: number;
@@ -46,16 +47,17 @@ export class X68Client {
     let firmware:number|undefined,scale:number|undefined;
     // The official HE driver returns raw 64-byte E5 pages, not echoed headers.
     // Firmware GET8F bytes 7/8 select its u8/u16 distance representation.
-    try{const version=await this.exchange([0x8f]);firmware=version[7]|version[8]<<8;if(!firmware||firmware===65535)throw Error('No firmware identity');scale=firmware<768?10:firmware<1280?100:200;
+    if(includeTriggers)try{const version=await this.exchange([0x8f]);firmware=version[7]|version[8]<<8;if(!firmware||firmware===65535)throw Error('No firmware identity');scale=firmware<768?10:firmware<1280?100:200;
       for(const param of [0,1,2,3,6,7]){const count=param===7||scale===10?2:4;const bytes=await this.rawPages(param,count),confirm=await this.rawPages(param,count);if(bytes.some((v,i)=>v!==confirm[i]))throw Error('Unstable HE read');travel.set(param,bytes);}
       const temporary={profile,rate,light,travel,pollingWritable,firmware,scale};for(let slot=0;slot<128;slot++){const option=travel.get(7)![slot];if(![0,2,3,4,5,7,8,9,10].includes(option&15))throw Error('Unknown key mode');for(const param of [0,1,2,3,6]){const mm=x68Distance(temporary,param,slot)!;if(!Number.isFinite(mm)||mm<0||mm>4)throw Error('Unknown distance encoding');}}
     }catch{travel.clear();}
+    if(includeTriggers&&firmware!==this.mappingFirmware){this.verifiedKeys.clear();this.mappingBaseline=null;this.mappingFirmware=firmware;}
     if((await this.exchange([pollingWritable?0x84:0x85]))[1]!==profile)throw Error('Profile changed during settings read');
     return { profile, rate, light, travel, pollingWritable,firmware,scale };
   }
   mappedSlot(code:string){return this.verifiedKeys.get(code);}
   armKey(code:string,snapshot:X68State){return this.serial(async()=>{if(!snapshot.scale||!snapshot.travel.size)throw Error('Read recognized trigger settings first');const bytes=await this.rawPages(254,snapshot.scale===10?2:4);const values=Array.from({length:128},(_,i)=>snapshot.scale===10?bytes[i]/10:(bytes[i*2]|bytes[i*2+1]<<8)/snapshot.scale!);if(values.some(v=>v>.15))throw Error('Release every key before starting verification');this.mappingBaseline={code,profile:snapshot.profile,firmware:snapshot.firmware,bytes};});}
-  verifyHeldKey(code:string,snapshot:X68State){return this.serial(async()=>{if(!snapshot.scale||!snapshot.travel.size||this.mappingBaseline?.code!==code)throw Error('Start verification with every key released first');const current=await this.readUnlocked();if(current.profile!==this.mappingBaseline.profile||current.firmware!==this.mappingBaseline.firmware)throw Error('Device changed; load settings again');const a=await this.rawPages(254,snapshot.scale===10?2:4),b=await this.rawPages(254,snapshot.scale===10?2:4);const distance=(v:Uint8Array,i:number)=>snapshot.scale===10?v[i]/10:(v[i*2]|v[i*2+1]<<8)/snapshot.scale!;const hits=Array.from({length:128},(_,i)=>i).filter(i=>distance(a,i)-distance(this.mappingBaseline!.bytes,i)>=.5&&distance(a,i)<=4&&distance(b,i)>=.5&&distance(b,i)<=4);if(hits.length!==1)throw Error('Hold only the selected key at least halfway down, then verify again');if([...this.verifiedKeys].some(([key,slot])=>key!==code&&slot===hits[0]))throw Error('This slot is already associated with another key');this.verifiedKeys.set(code,hits[0]);this.mappingBaseline=null;return hits[0];});}
+  verifyHeldKey(code:string,snapshot:X68State){return this.serial(async()=>{if(!snapshot.scale||!snapshot.travel.size||this.mappingBaseline?.code!==code)throw Error('Start verification with every key released first');const version=await this.exchange([0x8f]),firmware=version[7]|version[8]<<8;const profile=(await this.exchange([snapshot.pollingWritable?0x84:0x85]))[1];if(profile!==this.mappingBaseline.profile||firmware!==this.mappingBaseline.firmware)throw Error('Device changed; load settings again');const a=await this.rawPages(254,snapshot.scale===10?2:4),b=await this.rawPages(254,snapshot.scale===10?2:4);const distance=(v:Uint8Array,i:number)=>snapshot.scale===10?v[i]/10:(v[i*2]|v[i*2+1]<<8)/snapshot.scale!;const hits=Array.from({length:128},(_,i)=>i).filter(i=>distance(a,i)-distance(this.mappingBaseline!.bytes,i)>=.5&&distance(a,i)<=4&&distance(b,i)>=.5&&distance(b,i)<=4);if(hits.length!==1)throw Error('Hold only the selected key at least halfway down, then verify again');if([...this.verifiedKeys].some(([key,slot])=>key!==code&&slot===hits[0]))throw Error('This slot is already associated with another key');this.verifiedKeys.set(code,hits[0]);this.mappingBaseline=null;return hits[0];});}
   applyTrigger(snapshot:X68State,codes:string[],values:X68Trigger){return this.serial(async()=>{
     const slots=[...new Set(codes.map(code=>{const slot=this.verifiedKeys.get(code);if(slot===undefined)throw Error('Verify each selected physical key first');return slot;}))];if(!slots.length||!snapshot.scale||!snapshot.travel.size)throw Error('No verified trigger selection');
     const now=await this.readUnlocked();if(now.profile!==snapshot.profile||now.firmware!==snapshot.firmware||now.travel.size!==snapshot.travel.size||[...snapshot.travel].some(([p,b])=>b.some((v,i)=>v!==now.travel.get(p)?.[i])))throw Error('Trigger settings changed; load current settings');
@@ -67,19 +69,20 @@ export class X68Client {
     for(let i=0;i<changes.length;i++){const c=changes[i];await this.device.sendFeatureReport(0,x68Packet([0x65,c.param,0,c.slot,i===changes.length-1?1:0,0,0,0,...c.bytes]));await this.wait(35);}await this.wait(150);const after=await this.readUnlocked();if(after.profile!==now.profile||after.firmware!==now.firmware||after.travel.size!==expected.size||[...expected].some(([p,b])=>b.some((v,i)=>v!==after.travel.get(p)?.[i])))throw Error('Trigger readback did not confirm the complete settings; load current settings');return after;
   });}
   read() { return this.serial(() => this.readUnlocked()); }
+  readOverview(){return this.serial(async()=>{const {profile,rate,light,pollingWritable}=await this.readUnlocked(false);return {profile,rate,light,pollingWritable};});}
   apply(snapshot: X68State, light: Uint8Array, rateCode: number) {
     return this.serial(async () => {
       if (!Number.isInteger(rateCode) || rateCode < 0 || rateCode > 6 || light.length !== 64 || light[1] > 25 || light[2] > 4 || light[3] > 4) throw Error('Invalid X68HE values');
-      const now = await this.readUnlocked();
+      const now = await this.readUnlocked(false);
       if (now.pollingWritable !== snapshot.pollingWritable || now.profile !== snapshot.profile || now.light.slice(1, 8).some((v, i) => v !== snapshot.light[i + 1]) || now.rate[2] !== snapshot.rate[2]) throw Error('Device settings changed. Refresh before applying.');
       if (rateCode !== now.rate[2] && !now.pollingWritable) throw Error('Polling protocol is not recognized on this firmware. No changes were written.');
       // SET is send-only in the official driver; a GET of the SET response is
       // not an acknowledgement. Verify only with the actual settings GET.
       if (rateCode !== now.rate[2]) { await this.device.sendFeatureReport(0, x68Packet([0x03, 0, rateCode])); await this.wait(150); }
       if (light.slice(1, 8).some((v, i) => v !== now.light[i + 1])) { await this.device.sendFeatureReport(0, x68Packet([0x07, ...light.slice(1, 8)],8)); await this.wait(150); }
-      const result = await this.readUnlocked();
+      const result = await this.readUnlocked(false);
       if (result.profile !== now.profile || result.rate[2] !== rateCode || result.light.slice(1, 8).some((v, i) => v !== light[i + 1])) throw Error('X68HE readback did not confirm the changes. Load current settings to see device values.');
-      return result;
+      return {...result,travel:snapshot.travel,firmware:snapshot.firmware,scale:snapshot.scale};
     });
   }
   async close() { await this.queue; if (this.device.opened) await this.device.close(); }

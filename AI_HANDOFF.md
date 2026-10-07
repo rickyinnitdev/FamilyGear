@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 86. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 90. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.15. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.16. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -116,3 +116,7 @@ X68 opens in the main keyboard workspace with Lighting, Key tester, Trigger, Adv
 
 ## X11 pairing update 0.2.15
 The friend report has both page 0A and 0B collections on interface 2. Native Windows pairing now traverses DEVPKEY_Device_Parent with a bounded cached read-only query, up to eight ancestors, to the exact matching USB VID/PID composite receiver instance. This verified physical ancestor is preferred over collection ContainerIds; USB hubs, interface parents and another PID are rejected. Parent identities and serials stay private. Different identical receivers cannot cross-pair; ambiguous event collections are refused. Failed automatic reports now include whitelisted interfaces and settings-read stage outcomes, so pairing failure can be distinguished from model identity timeout or settings read failure. Existing consent and Google receiver schema are unchanged. 86 mocked tests and build pass. No physical X11 is attached here; the new pairing correction still needs the friend to reconnect/test.
+
+## Version 0.2.16 X11 decoding and keyboard usability
+Friend reports on 0.2.15 confirm X11 pairing/model identification passed but settings read failed; X68HE trigger reads passed. X11 DPI codec previously refused every byte-7 multiplier flag. The reference driver initializes paired byte-6/7 flag 0x20 for high DPI; now accept only matching double/legacy paired flags with canonical DPI byte roundtrip and valid checksum. Independent unsupported byte-7 flags still fail. DPI writes update only the selected paired flag and preserve others. Read-only A0/read sequences retry at most three times with timing backoff and preserve strict validation; no default profile initialization or firmware reset. Read errors name profile/DPI/lighting/polling/buttons. The friend has not confirmed physical X11 connectivity after this correction.
+X68 Trigger UI has actuation/RT/deadzone slider+number columns, per-key saved values after mapping, pending edit preservation and Cancel. Clicking an unmapped key automatically captures a released baseline; holding it triggers measured mapping automatically, without a second click. Mappings are valid only for this connection and firmware. Main renders defer during X68 hardware operations. Load current settings still performs complete repeated HE reads. Connecting opens the workspace after the initial full read; background smoke repeats only the overview (RGB/polling/profile), while trigger availability comes from the initial repeated parameter reads. RGB/polling apply verifies only the relevant overview, preserving cached trigger state; trigger writes still perform full stale checks and full readback. Key verification checks profile/firmware rather than redundantly rereading all HE pages. No shortened HID delays or parallel hardware transactions. 90 unit tests pass; mocked Electron UI verifies automatic hold unlock, polling, actuation, pending drafts, Cancel and digital feedback.

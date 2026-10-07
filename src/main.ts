@@ -1,5 +1,5 @@
 import { smokeDevice, failedConnection, openDeviceReports, sendPending } from './device-smoke';
-import { addX68, openX68, closeX68, x68Card, x68Connected, mountX68, unmountX68, setX68OpenHandler } from './x68-panel';
+import { addX68, openX68, closeX68, x68Card, x68Connected, mountX68, unmountX68, x68Busy, setX68OpenHandler } from './x68-panel';
 import { openX11Details } from './x11-diagnostics';
 import { X11Client } from './devices/x11';
 import { openDelayTool, type DelayChange } from './mouse-delay';
@@ -27,6 +27,7 @@ function updateButton(){const button=document.querySelector<HTMLButtonElement>('
 let view: 'mouse' | 'keyboard' = 'mouse';
 let home=true;
 let x68Active=false;
+let x68RenderTimer:ReturnType<typeof setTimeout>|undefined;
 setX68OpenHandler(()=>{x68Active=x68Connected();view='keyboard';home=!x68Active;render();});
 let theme: 'dark'|'light' = localStorage.getItem('amouse-theme')==='light'?'light':'dark';
 let demo = false;
@@ -83,6 +84,7 @@ const options = (values: readonly number[], current: number, suffix = '') => val
 const toggle = (id: string, label: string, help: string, value: boolean, disabled: boolean) => `<label class="toggle-row"><span><strong>${label}</strong><small>${help}</small></span><input id="${id}" type="checkbox" ${value ? 'checked' : ''} ${disabled ? 'disabled' : ''}/><span class="switch" aria-hidden="true"></span></label>`;
 
 function render() {
+  if(x68Busy()){if(!x68RenderTimer)x68RenderTimer=setTimeout(()=>{x68RenderTimer=undefined;render();},100);return;}
   unmountX68();
   if(!proData){advancedData=null;advancedSlots=[null,null];}
   document.documentElement.dataset.theme=theme;
@@ -94,7 +96,7 @@ function render() {
       <span class="nav-label">YOUR STUDIO</span><button id="home" class="nav-item ${home?'active':''}">${icon('layout-grid')}<span>Your desk</span></button>
       <button class="nav-item ${!home&&view === 'mouse' ? 'active' : ''}" data-view="mouse" ${!mouse&&!demo?'hidden':''}>${icon('mouse')}<span>Mouse</span><span class="nav-count">01</span></button>
       <button class="nav-item ${!home&&view === 'keyboard' ? 'active' : ''}" data-view="keyboard" ${!keyboard&&!demo&&!x68Connected()?'hidden':''}>${icon('keyboard')}<span>Keyboard</span><span class="nav-count">02</span></button>
-      <div class="sidebar-bottom"><div class="local-note">${icon('shield-check')}<div>On your device<small>Settings travel directly over USB.</small></div></div>${desktop?'<button class="text-button" id="device-scanner">Scan devices</button>':''}<button class="text-button" id="automatic-reports">Device reports</button><button class="text-button" id="suggestions">Share an idea</button><button class="text-button" id="about">${icon('info')} About & source</button><span class="version">Family Gear / v0.2.15</span></div>
+      <div class="sidebar-bottom"><div class="local-note">${icon('shield-check')}<div>On your device<small>Settings travel directly over USB.</small></div></div>${desktop?'<button class="text-button" id="device-scanner">Scan devices</button>':''}<button class="text-button" id="automatic-reports">Device reports</button><button class="text-button" id="suggestions">Share an idea</button><button class="text-button" id="about">${icon('info')} About & source</button><span class="version">Family Gear / v0.2.16</span></div>
     </aside>
     <div class="shell">
       <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>${home?'Your desk':view === 'mouse' ? 'Mouse' : 'Keyboard'}</strong></div><div class="top-actions">${desktop?'<button class="theme-button" id="desktop-update"></button>':''}<button class="theme-button" id="theme-toggle" aria-label="Switch to ${theme==='dark'?'light':'dark'} mode">${theme==='dark'?'☀':'☾'}<span>${theme==='dark'?'Light':'Dark'} mode</span></button><label class="demo-toggle"><input id="demo" type="checkbox" ${demo ? 'checked' : ''} ${busy ? 'disabled' : ''}/><span>Preview mode</span></label><span class="local-pill">${icon('cable')} Local connection</span></div></header>
@@ -687,7 +689,7 @@ if (context?.registerTool) {
 
 import './studio-theme.css';
 
-desktop?.onClose(async reason=>{if(reason==='update'&&(busy||liveSession||calibrationSession))throw new Error('A device session is still active.');await telemetry;await closeX68();await stopTravel();await keyboard?.close();await mouse?.close();});
+desktop?.onClose(async reason=>{if(reason==='update'&&(busy||x68Busy()||liveSession||calibrationSession))throw new Error('A device session is still active.');await telemetry;await closeX68();await stopTravel();await keyboard?.close();await mouse?.close();});
 if(desktop){desktop.onUpdate(state=>{updateState=state;updateButton();});void desktop.updateState().then(state=>{updateState=state;updateButton();});}
 
 window.addEventListener('online',()=>void sendPending().catch(()=>{}));void sendPending().catch(()=>{});

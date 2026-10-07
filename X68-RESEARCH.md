@@ -1,4 +1,4 @@
-# ATTACK SHARK X68HE — 0.2.14
+# ATTACK SHARK X68HE — 0.2.16
 
 The owner's device is 3151:502D. The [official product page](https://attackshark.com/products/attack-shark-x68-he-rapid-trigger-keyboard-magnetic-switch) advertises rapid trigger, 8 kHz, DKS, MT, TGL and Snap Tap. These features require model-specific protocols; Hall effect switches do not imply compatibility with MCHOSE commands.
 
@@ -18,4 +18,7 @@ The main keyboard workspace provides Lighting, Key tester, Trigger, Advanced key
 
 DKS, MT, TGL, Snap Tap editing, remapping, calibration, switch replacement and continuous analog streaming remain unavailable. Their binding banks and session state need separate verification. No firmware flashing or factory reset is performed.
 
-83 unit tests and an Electron UI harness exercise mocked devices. The owner has supplied successful physical RGB/polling reads, but this new HE path has not been tested with a physical X68HE. Keep support experimental and do not claim complete parity with Ace 60 Pro. X11 receiver 1D57:FA60 still has a failed connection report; this release does not fix it.
+90 unit tests and an Electron UI harness exercise mocked devices. The owner has supplied successful physical RGB/polling reads, but this new HE path has not been tested with a physical X68HE. Keep support experimental and do not claim complete parity with Ace 60 Pro. X11 receiver 1D57:FA60 still has a failed connection report; this release does not fix it.
+
+### Usability and read scheduling, 0.2.16
+Click a key then hold it when prompted: released-baseline/held-switch mapping is automatic and still requires measured depth. The UI shows saved per-key values for mapped keys, slider and number controls, retained drafts and Cancel. Full settings load keeps repeated raw HE validation. Read-only automatic reports repeat the overview instead of a second complete HE transfer; trigger availability reflects the initial repeated HE reads. RGB/polling writes verify fresh overview blocks and preserve cached trigger values. HE Apply still reads and compares the complete settings before and after writing. Firmware changes invalidate measured mappings.

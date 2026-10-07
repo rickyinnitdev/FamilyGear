@@ -1,6 +1,6 @@
 export type SmokeCheck={name:string;result:'passed'|'failed'|'unavailable'|'not-tested'};
 export type SmokeReport={id:string;format:'family-gear-smoke-v1';version:string;type:'mouse'|'keyboard';vendorId:number;productId:number;checks:SmokeCheck[];interfaces?:unknown[]};
-const VERSION='0.2.15',KEY='family-gear-automatic-reports-v1';
+const VERSION='0.2.16',KEY='family-gear-automatic-reports-v1';
 let consent=localStorage.getItem(KEY)==='yes',preference:Promise<boolean>|null=null;
 let queue:SmokeReport[]=[];try{const saved=JSON.parse(localStorage.getItem(KEY+'-pending')??'[]');if(Array.isArray(saved))queue=saved.slice(-8);}catch{}
 function save(){localStorage.setItem(KEY+'-pending',JSON.stringify(queue));}
@@ -19,7 +19,7 @@ export async function sendPending(){
 export async function smokeDevice(type:'mouse'|'keyboard',device:{vendorId:number;productId:number},first:unknown,read:()=>Promise<unknown>){
  const checks:SmokeCheck[]=[{name:'connection',result:'passed'},{name:'settings-read',result:'passed'}];
  let repeat:unknown;try{repeat=await read();checks.push({name:'repeat-read',result:'passed'});}catch{checks.push({name:'repeat-read',result:'failed'});}
- const status=(repeat??first??{}) as Record<string,unknown>;const check=(name:string,available:boolean)=>checks.push({name,result:available?'passed':'unavailable'});
+ const status={...(first??{}),...(repeat??{})} as Record<string,unknown>;const check=(name:string,available:boolean)=>checks.push({name,result:available?'passed':'unavailable'});
  if(type==='mouse'){check('dpi-read',typeof status.dpi==='number');check('polling-read',typeof status.pollingRateHz==='number'&&status.pollingReadVerified!==false);check('battery-read',typeof status.batteryPercent==='number');check('lighting-read',Boolean(status.lighting));}
  else {check('polling-read',status.pollingWritable===true);check('lighting-read',Boolean(status.light||status.lighting));check('trigger-read',Array.isArray(status.keys)&&status.keys.length>0||status.travel instanceof Map&&status.travel.size>0);}
  checks.push({name:'physical-behavior',result:'not-tested'});await collect({id:crypto.randomUUID(),format:'family-gear-smoke-v1',version:VERSION,type,vendorId:device.vendorId,productId:device.productId,checks});
