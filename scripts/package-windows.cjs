@@ -22,7 +22,10 @@ const { updateAddress } = require('../desktop/updates.cjs');
   await esbuild.build({ stdin: { contents: "module.exports = require('electron-updater');", resolveDir: root }, bundle: true, platform: 'node', format: 'cjs', external: ['electron'], outfile: path.join(staging,'desktop/updater-runtime.cjs') });
   await fs.writeFile(path.join(staging,'package.json'), JSON.stringify({ name: 'family-gear', productName: 'Family Gear', version, main: 'desktop/main.cjs', license: 'AGPL-3.0-or-later' }));
   await fs.copyFile(path.join(root,'build/icon.png'), path.join(staging,'desktop/icon.png'));
-  await asar.createPackage(staging, path.join(output,'resources/app.asar'));
+  // Native N-API binaries must live outside the ASAR archive. The HID worker
+  // reaches only the whitelisted X11 collections, without replacing OS drivers.
+  for(const name of ['node-hid','pkg-prebuilds']) await fs.cp(path.join(root,'node_modules',name),path.join(staging,'node_modules',name),{recursive:true,force:true});
+  await asar.createPackageWithOptions(staging, path.join(output,'resources/app.asar'),{unpack:'**/*.node'});
   await fs.mkdir(path.join(output,'licenses'), { recursive: true });
   await fs.copyFile(path.join(root,'node_modules/lucide/LICENSE'),path.join(output,'licenses/LUCIDE.txt'));
   await fs.copyFile(path.join(root,'LICENSE'),path.join(output,'licenses/FAMILY-GEAR-AGPL.txt'));

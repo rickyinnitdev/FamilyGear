@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('familyGear', {
+  x11: (operation,args=[]) => ipcRenderer.invoke('x11',operation,args),
   onClose: handler => ipcRenderer.on('closing', async (_, reason) => {
     try { await handler(reason); ipcRenderer.send('closed-devices'); }
     catch (error) { ipcRenderer.send('closed-devices', String(error)); }

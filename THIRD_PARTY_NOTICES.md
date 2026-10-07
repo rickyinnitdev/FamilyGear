@@ -75,3 +75,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ## AULA SC620 protocol research
 
 The SC620 adapter is independently authored from static observations of the official AULA SC620 Windows driver archive linked at https://aulagear.com/blogs/software/aula-sc620-driver. Vendor executables, extracted resources and product artwork are not distributed with this adapter. See SC620-RESEARCH.md for provenance and limitations. Existing OpenMouse notices remain applicable to the other drivers.
+# Native X11 support
+
+The X11 DPI conversion code in `desktop/vendor/x11` is from [HarukaYamamoto0/attack-shark-x11-driver](https://github.com/HarukaYamamoto0/attack-shark-x11-driver), licensed under MIT. Its original license is included beside the editable source. The native HID transport uses node-hid and its packaged HIDAPI/native components; dependency license files are included in the Windows distribution. Family Gear's native settings integration is experimental and independent of ATTACK SHARK.

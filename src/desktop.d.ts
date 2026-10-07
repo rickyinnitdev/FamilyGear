@@ -2,6 +2,7 @@ interface DesktopUpdateState { phase: string; text: string; version?: string; pe
 interface ScannedDevice { vendorId: number; productId: number; name: string; deviceClass: string }
 interface Window {
   familyGear?: {
+    x11(operation:string,args?:Array<string|number|boolean>):Promise<any>;
     onClose(handler: (reason: string) => Promise<void>): void;
     updateState(): Promise<DesktopUpdateState>;
     onUpdate(handler: (state: DesktopUpdateState) => void): void;
