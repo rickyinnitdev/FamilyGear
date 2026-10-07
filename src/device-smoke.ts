@@ -1,6 +1,6 @@
 export type SmokeCheck={name:string;result:'passed'|'failed'|'unavailable'|'not-tested'};
 export type SmokeReport={id:string;format:'family-gear-smoke-v1';version:string;type:'mouse'|'keyboard';vendorId:number;productId:number;checks:SmokeCheck[];interfaces?:unknown[]};
-const VERSION='0.2.16',KEY='family-gear-automatic-reports-v1';
+const VERSION='0.2.17',KEY='family-gear-automatic-reports-v1';
 let consent=localStorage.getItem(KEY)==='yes',preference:Promise<boolean>|null=null;
 let queue:SmokeReport[]=[];try{const saved=JSON.parse(localStorage.getItem(KEY+'-pending')??'[]');if(Array.isArray(saved))queue=saved.slice(-8);}catch{}
 function save(){localStorage.setItem(KEY+'-pending',JSON.stringify(queue));}
