@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.12. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.13. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -107,3 +107,6 @@ Add device → X11 connection details opens a reviewed local report listing only
 
 ## Version 0.2.12 X68HE polling correction and preview
 Official qmk.top current bundle corroborates HE polling GET83/SET03 and profile GET84/SET04. The earlier community-derived SET04 path was wrong for this protocol and could switch profile. It is removed: legacy-read fallback cannot write polling. SET commands are send-only then settings GET verifies both polling and unchanged profile; no SET ACK assumptions. X68 UI has a wide keyboard RGB illustration, effects tiles, digital input feedback, Load current settings and Cancel changes. Physical HE mapping/writes are still not enabled. X11 event collections on other interface numbers are allowed only when the OS confirms the same physical container; model-55 check still required. Failed native connects automatically open reviewed connection details for the friend to copy. Friend report is still needed to diagnose a receiver whose event collection is actually absent.
+
+## Version 0.2.13 automatic reports
+Owner deployed the Google Forms inbox in public/report-inbox.json. An anonymous synthetic report (USB IDs 0:0, not-tested) was acknowledged by the real endpoint. GOOGLE-REPORTS.md and scripts/google-report-inbox.gs document owner deployment. src/device-smoke.ts asks explicit one-time upload consent, queues at most eight local reports, retries with backoff, and performs only repeat reads after connections. desktop/reporting.cjs validates metadata and the Google-only redirect/acknowledgment. No serials, paths, raw packets, typed keys or account credentials are uploaded. Device reports allows disabling and clearing the queue. Physical RGB/buttons/latency stay not-tested. X68HE animations are illustrative, including reactive digital key feedback; no HE writes were enabled. All 78 tests pass, including privacy and serialized report delivery; mocked Electron UI verifies polling readback and keyboard feedback.

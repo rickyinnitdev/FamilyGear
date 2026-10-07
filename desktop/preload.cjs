@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('familyGear', {
   onDevices: handler => ipcRenderer.on('devices', (_, devices) => handler(devices)),
   choose: id => ipcRenderer.send('choose-device', id),
   community: () => ipcRenderer.invoke('community'),
+  reportingConfig: () => ipcRenderer.invoke('reporting-config'),
+  sendDeviceReport: report => ipcRenderer.invoke('device-report',report),
   scanDevices: () => ipcRenderer.invoke('scan-devices'),
   delayEnvironment: () => ipcRenderer.invoke('delay-environment'),
   openMouseSettings: () => ipcRenderer.invoke('open-mouse-settings'),

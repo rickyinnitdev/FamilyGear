@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { scanDevices } = require('./scanner.cjs');
 const { delayEnvironment } = require('./delay.cjs');
 const x11 = require('./x11.cjs');
+const reporting=require('./reporting.cjs').createReporting(require('../dist/report-inbox.json').endpoint);
 app.on('before-quit',()=>x11.stop());
 const { createUpdates } = require('./updates.cjs');
 protocol.registerSchemesAsPrivileged([{ scheme: 'familygear', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
@@ -51,6 +52,8 @@ app.whenReady().then(async () => {
     clipboard.writeText(text);
   });
   ipcMain.handle('community', event => event.sender === main?.webContents ? communityRepository : null);
+  ipcMain.handle('reporting-config', event => {if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw Error('Untrusted report request.');return reporting.config();});
+  ipcMain.handle('device-report', (event,report) => {if(event.sender!==main?.webContents||!trusted(event.sender.getURL()))throw Error('Untrusted report request.');return reporting.submit(report);});
   ipcMain.handle('update-state', event => event.sender === main?.webContents ? updates?.state() ?? { phase: 'unconfigured', text: 'Updates need a download address.' } : null);
   ipcMain.on('check-updates', event => { if (event.sender === main?.webContents) void updates?.check(); });
   ipcMain.on('restart-update', event => { if (event.sender === main?.webContents && !closing && updates?.state().phase === 'ready') { restarting = true; main.close(); } });

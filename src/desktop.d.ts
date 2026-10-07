@@ -10,6 +10,8 @@ interface Window {
     restartUpdate(): void;
     source(): void;
     community(): Promise<string | null>;
+    reportingConfig(): Promise<{configured:boolean;provider:string;endpoint:string}>;
+    sendDeviceReport(report:unknown): Promise<{sent:boolean;reason?:string}>;
     scanDevices(): Promise<ScannedDevice[]>;
     delayEnvironment(): Promise<{acceleration:boolean;pointerSpeed:number}>;
     openMouseSettings(): Promise<void>;

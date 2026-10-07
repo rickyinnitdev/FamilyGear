@@ -1,5 +1,6 @@
 import { X68Client, X68_FILTER, X68_RATES, type X68State } from './devices/x68';
 import './x68-panel.css';
+import { smokeDevice, failedConnection } from './device-smoke';
 let client: X68Client | null = null, state: X68State | null = null;
 export function x68Connected() { return Boolean(client); }
 const effects=['Off','Constant','Breathing','Neon','Wave','Ripple','Raindrop','Snake','Key press','Coverage','Sine wave','Kaleidoscope','Line wave','Custom picture','Laser','Circle wave','Dazzling','Rain down','Meteor','Key release','Music 3','Screen color','Music 2','Train','Fireworks','Custom color'];
@@ -10,7 +11,7 @@ export function x68Card() { return client ? '<button class="add-gear" id="x68-op
 export async function addX68() {
   const devices = await navigator.hid.requestDevice({ filters: [X68_FILTER] });
   if (!devices.length) return;
-  await closeX68(); const result = await X68Client.connect(devices[0]); client = result.client; state = result.state; openX68();
+  await closeX68();try{const result = await X68Client.connect(devices[0]); client = result.client; state = result.state; await smokeDevice('keyboard',client.device,state,()=>client!.read()); openX68();}catch(error){await failedConnection('keyboard',devices[0]);throw error;}
 }
 export function openX68() {
   if (!client || !state || document.querySelector('#x68-studio')) return;
@@ -26,7 +27,7 @@ export function openX68() {
     q<HTMLButtonElement>('refresh').textContent='Load current settings';
     const cancel=document.createElement('button');cancel.className='secondary';cancel.textContent='Cancel changes';cancel.id='x68-cancel';cancel.onclick=draw;q('refresh').after(cancel);
     const tiles=document.createElement('div');tiles.className='x68-effects';tiles.innerHTML=effects.map((name,i)=>`<button type="button" data-x68-effect="${i}" class="${s.light[1]===i?'active':''}">${name}</button>`).join('');q('effect').parentElement!.after(tiles);q<HTMLSelectElement>('effect').parentElement!.style.display='none';
-    const preview=()=>{const p=q('board');p.style.setProperty('--x68-color',q<HTMLInputElement>('color').value);p.style.setProperty('--x68-bright',String(Number(q<HTMLInputElement>('bright').value)/4));p.style.setProperty('--x68-speed',`${5-Number(q<HTMLInputElement>('speed').value)}s`);p.dataset.effect=q<HTMLSelectElement>('effect').value;};
+    const preview=()=>{const p=q('board');p.style.setProperty('--x68-color',q<HTMLInputElement>('color').value);p.style.setProperty('--x68-bright',String(Number(q<HTMLInputElement>('bright').value)/4));p.style.setProperty('--x68-speed',`${5-Number(q<HTMLInputElement>('speed').value)}s`);const effect=Number(q<HTMLSelectElement>('effect').value);p.dataset.effect=String(effect);p.dataset.family=effect===0?'off':effect===1||effect===13||effect===25?'constant':[8,19].includes(effect)?'reactive':[2,9,14,15,24].includes(effect)?'pulse':[6,17,18].includes(effect)?'rain':'rainbow';p.querySelectorAll<HTMLElement>('.key').forEach((key,i)=>{key.style.setProperty('--x68-phase',`${-(i%15)/3}s`);key.style.setProperty('--x68-hue',`${i*19}deg`);});};
     tiles.querySelectorAll<HTMLButtonElement>('button').forEach(b=>b.onclick=()=>{q<HTMLSelectElement>('effect').value=b.dataset.x68Effect!;tiles.querySelectorAll('button').forEach(other=>other.classList.toggle('active',other===b));preview();});
     for(const id of ['bright','speed','color'])q<HTMLInputElement>(id).oninput=preview;preview();
     q<HTMLButtonElement>('close').onclick = () => dialog.close();
