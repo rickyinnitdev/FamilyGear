@@ -31,9 +31,9 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.7. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.8. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
-Output: `release/windows-0.2.7/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.7.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
+Output: `release/windows-0.2.8/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.8.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
 When bumping versions, update package.json, lockfile and visible UI version. Packaging paths derive the version automatically. Never overwrite or kill a running user app just to rebuild; use a fresh output folder.
 
@@ -84,3 +84,7 @@ Owner explicitly requested publishing this update to automatic updates. Use matc
 The previous 0070 polling selector was incorrect for the owner's 3554:F58E R1. Actual hardware reads show system row 0000 [01 54 04 51 00 55]; 0070 contains unrelated [01 10 00 44]. Use only the first system scalar pair for CompX polling, preserving stage count/index. This differs from the 373B Beken live selector. Reads accept checksum-valid read or write IDs with bounded payloads, and retry reads only. Hardware test of the updated adapter AND the built app's full Apply form confirmed 800 DPI/500 Hz, then restored 1600 DPI/1000 Hz. Mock tests cover row preservation, firmware reply variants, stale stage state, and ignored writes. Do not generalize these physical results to other mice.
 
 Mouse performance selections survive rendering and failed Apply. The inline result appears beside Apply, and Cancel changes restores displayed device values. Disconnect, new device and preview changes clear drafts.
+
+## Version 0.2.8 CompX debounce
+
+CompX VXE R1 debounce also incorrectly inherited the Beken 0070 live selector. It now writes only the debounce scalar pair at 00A9, after comparing the entire ten-byte advanced row against the displayed snapshot, then requires full-row readback with unknown bytes preserved. Full status reads validate the pair; unavailable reads disable debounce. Built-app hardware Apply test on the connected 3554:F58E confirmed 4 ms to 2 ms, then restored 4 ms. Regression tests reject stale advanced rows and ignored writes. All 52 tests passed. This does not verify every R1 setting or other models.

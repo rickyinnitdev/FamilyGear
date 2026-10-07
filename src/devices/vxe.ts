@@ -22,6 +22,7 @@ export class VxeClient extends AtkHidClient {
   private r1Performance:Uint8Array|null=null;
   private r1System:Uint8Array|null=null;
   private r1Stages:Uint8Array[]=[];
+  private r1Advanced:Uint8Array|null=null;
   private settingsQueue:Promise<unknown>=Promise.resolve();
   private settingsRun<T>(action:()=>Promise<T>){const next=this.settingsQueue.then(action,action);this.settingsQueue=next.catch(()=>{});return next;}
   private async r1Read(address:number,length:number){
@@ -73,6 +74,22 @@ export class VxeClient extends AtkHidClient {
     });
   }
   override async setActiveDpiStage(index:number){if(this.receiverPerformancePath())throw new Error('Receiver stage switching is not verified. Use the physical DPI button.');return super.setActiveDpiStage(index);}
+  override async setDebounceTime(milliseconds:number){
+    if(!this.receiverPerformancePath())return super.setDebounceTime(milliseconds);
+    return this.settingsRun(async()=>{
+      if(!Number.isInteger(milliseconds)||!this.getDebounceOptions().includes(milliseconds))throw new Error('Choose a supported debounce time.');
+      const current=await this.r1Read(0xa9,10);
+      if(!this.r1Advanced||!current.every((v,i)=>v===this.r1Advanced![i]))throw new Error('Mouse sensor settings changed. Refresh before applying debounce.');
+      const next=current.slice();next.set(wePackScalarPair(milliseconds),0);
+      this.r1Advanced=null;
+      // CompX debounce is the first scalar pair of the advanced settings row.
+      // Write only that pair, then check the complete row including unknown bytes.
+      await this.r1Write(0xa9,next.slice(0,2));
+      const after=await this.r1Read(0xa9,10);
+      if(!after.every((v,i)=>v===next[i]))throw new Error('The mouse did not confirm debounce while preserving its other sensor settings.');
+      this.r1Advanced=after;return milliseconds;
+    });
+  }
   private receiverPerformancePath(){return this.device.vendorId===0x3554&&[0xf58e,0xf58f].includes(this.device.productId)&&this.displayName()==='VXE R1';}
   private requestR1(frame:Uint8Array,match:(reply:Uint8Array)=>boolean):Promise<Uint8Array>{
     return new Promise((resolve,reject)=>{
@@ -95,6 +112,11 @@ export class VxeClient extends AtkHidClient {
       try{this.r1Performance=await this.readPerformanceR1();status.performanceMode=this.r1Performance[4]===1;}catch{/* Unreadable settings remain disabled. */}
     }else if(live&&this.r1Performance)status.performanceMode=this.r1Performance[4]===1;
     if(this.receiverPerformancePath()&&!live){
+      this.r1Advanced=null;
+      try{const row=await this.r1Read(0xa9,10),value=weUnpackScalarPair(row[0],row[1]);
+        if(value!=null&&this.getDebounceOptions().includes(value)){this.r1Advanced=row;status.debounceMs=value;}
+        else status.debounceMs=null;
+      }catch{status.debounceMs=null;}
       this.r1System=null;this.r1Stages=[];
       try{const layout=await this.r1Layout();this.r1System=layout.system;this.r1Stages=layout.stages;status.ui={...status.ui,dpiStageEditor:{maxStages:6,countEditable:false,minDpi:50,maxDpi:26000,stepDpi:50}};}catch{/* Stage writes remain locked without a complete layout. */}
     }
