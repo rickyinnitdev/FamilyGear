@@ -107,3 +107,6 @@ Check delay & optimize previews a supported mouse preset, verifies each change a
 SC620 users can agree to local test reporting. Connections and Apply results are recorded without raw packets, serials, paths, keystrokes or account information. Device readback and physical behavior are distinguished. Test report & agreement lets users review, copy, open a public GitHub form or delete/stop recording. Nothing is uploaded automatically.
 
 Version 0.2.8 fixes CompX R1 debounce through its advanced settings pair, preserving the complete sensor row. The built app confirmed 2 ms on the connected F58E receiver and restored its original 4 ms. Failed or stale writes still produce an error.
+
+### ATTACK SHARK X68HE (experimental)
+Add device → ATTACK SHARK X68HE, via wired USB. RGB and polling load from device and require write readback. Optional Hall effect slot values are read-only. Calibration, HE editing, analog depth and advanced bindings need further verification; use the official configurator for these. See X68-RESEARCH.md.

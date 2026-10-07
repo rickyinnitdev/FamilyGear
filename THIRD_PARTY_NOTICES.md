@@ -78,3 +78,5 @@ The SC620 adapter is independently authored from static observations of the offi
 # Native X11 support
 
 The X11 DPI conversion code in `desktop/vendor/x11` is from [HarukaYamamoto0/attack-shark-x11-driver](https://github.com/HarukaYamamoto0/attack-shark-x11-driver), licensed under MIT. Its original license is included beside the editable source. The native HID transport uses node-hid and its packaged HIDAPI/native components; dependency license files are included in the Windows distribution. Family Gear's native settings integration is experimental and independent of ATTACK SHARK.
+
+X68HE protocol facts were investigated using https://github.com/srineshr1/keyboard-driver and the official qmk.top configurator. No source from that unlicensed research repository is included; Family Gear implements its adapter independently. See X68-RESEARCH.md.

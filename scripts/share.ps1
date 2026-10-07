@@ -4,7 +4,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 $releaseRoot = Join-Path $projectRoot 'release'
 $sourceRoot = Join-Path $releaseRoot 'Family-Gear-source'
 New-Item -ItemType Directory -Force $sourceRoot | Out-Null
-foreach ($name in @('build','src','public','desktop','scripts','tests','package.json','package-lock.json','tsconfig.json','index.html','LICENSE','THIRD_PARTY_NOTICES.md','README.md','WINDOWS.md','FREE-UPDATES.md','AI_HANDOFF.md','SC620-RESEARCH.md','X11-RESEARCH.md','AGENTS.md')) {
+foreach ($name in @('build','src','public','desktop','scripts','tests','package.json','package-lock.json','tsconfig.json','index.html','LICENSE','THIRD_PARTY_NOTICES.md','README.md','WINDOWS.md','FREE-UPDATES.md','AI_HANDOFF.md','SC620-RESEARCH.md','X11-RESEARCH.md','X68-RESEARCH.md','AGENTS.md')) {
   Copy-Item -LiteralPath (Join-Path $projectRoot $name) -Destination $sourceRoot -Recurse -Force
 }
 $upstreamRoot = Join-Path $sourceRoot 'upstream/openmouse'
