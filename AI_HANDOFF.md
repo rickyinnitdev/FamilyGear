@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 98. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 100. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.21. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.22. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -138,3 +138,6 @@ Owner confirmed the friend X11 now connects after 0.2.19; this confirms connecti
 Devices are saved after successful connection/read in src/saved-devices.ts. Startup uses already-granted WebHID devices (matching VID/PID and collection signature) or the native X11 list (unique matching product). No settings snapshot is restored or applied. Only one saved mouse is kept; Ace and X68 may both be saved. Ambiguous identical matches require manual selection. Missing devices remain on the desk, with Reconnect saved devices and Forget saved devices. Add once after updating from older versions.
 
 Electron persists grants only for explicitly selected HID devices in userData/selected-hid-devices.json, via desktop/hid-permissions.cjs. Local grant identifiers never enter reports. Renderer registry contains no paths/serials or hardware values. Forget removes reconnect preferences, not OS/device permissions. 98 tests and build pass; hidden Electron startup smoke restores mocked X68 without invoking the chooser. Physical restart on owner hardware still needs confirmation.
+
+## 0.2.22 mouse polling test
+Test polling rate opens a five-second motion area. Uses pointerrawupdate when available, otherwise pointermove, with coalesced timestamps. Deduplicates timestamps; displays delivered event rate, sample count, median and p95 interval. Does not measure exact USB polling, device identity or latency, and makes no settings writes. Blur/close cancel and clean up listeners/timer. 100 tests and build pass.
