@@ -8,7 +8,7 @@ Family Gear is a device configurator for the owner and their friends. It has a V
 
 ## Run and verify
 
-Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 100. Hardware writes are experimental; mocked tests do not prove every physical device works.
+Use Windows PowerShell and Node.js 22.12+. Run `npm ci`, `npm test`, and `npm run build`. Run `npm run dev` for localhost:5173 or `npm run desktop` for Electron. Tests currently total 105. Hardware writes are experimental; mocked tests do not prove every physical device works.
 
 ## Main code
 
@@ -31,7 +31,7 @@ Supported hardware includes known VXE R1 transports, experimental Ace 60 / Ace 6
 
 ## Windows packaging
 
-Current version: 0.2.22. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
+Current version: 0.2.23. Run `npm run build:installer` on Windows. Packaging explicitly prepares Electron + app.asar, then uses electron-builder's `--prepackaged` NSIS flow; ordinary builder packaging previously failed with Windows EPERM rename errors. Preserve this workaround.
 
 Output: `release/windows-0.2.12/win-unpacked/Family Gear.exe` and `release/updates/FamilyGear-Setup-0.2.12.exe`. `scripts/share.ps1` includes corresponding source and notices. `scripts/update-manifest.cjs` creates latest.yml with SHA-512 and the versioned source ZIP. Output, dependencies and research checkouts are gitignored.
 
@@ -141,3 +141,7 @@ Electron persists grants only for explicitly selected HID devices in userData/se
 
 ## 0.2.22 mouse polling test
 Test polling rate opens a five-second motion area. Uses pointerrawupdate when available, otherwise pointermove, with coalesced timestamps. Deduplicates timestamps; displays delivered event rate, sample count, median and p95 interval. Does not measure exact USB polling, device identity or latency, and makes no settings writes. Blur/close cancel and clean up listeners/timer. 100 tests and build pass.
+
+## 0.2.23 Ace Pro change history and undo
+AceClient records up to 20 explicit Ace Pro configuration transactions per connection: mapping, trigger, lighting, performance, advanced binding, Win lock. Journal captures actual bytes immediately before each whitelisted SET (06/09/A1/A3/A5/A7), not displayed defaults. Incomplete transactions are retained. Undo checks firmware/base/profile and every touched region against expected before/after before writing; reverses the transaction and verifies each region. Same before values allow resuming an interrupted restore. History is memory-only and belongs to this client; disconnect/restart loses it. Does not cover factory resets, calibration/debug, Fn shortcuts, other apps, base Ace, X68 or mice. No generic arbitrary-report restore API.
+Changes & undo opens the history with readable remap/trigger labels. Key config lists physical-to-current differences for the loaded profile/layer, including custom/advanced actions; repairing one mapping preserves trigger bytes. No diagnosis of Fn lock from browser keys. Performance Apply no longer auto-downloads its reference export; manual export remains. 105 tests and build pass, including mapping/trigger/advanced undo, stale profile/region rejection, ignored restore. Physical keyboard undo still requires owner confirmation.

@@ -1,11 +1,31 @@
 import { ACE_MODELS, ACE_VENDOR, decodeTravel, isReply, packet, TRAVEL_BYTES, updateTravel, type TravelKey } from './ace-codec';
 import { decodeLighting, updateLighting, type AceLighting, type LightingSnapshot } from './ace-lighting';
-import { decodeProData, updateProMapping, updateProTrigger, updateProPerformance, type ProData, type ProTriggerValues, type ProPerformance } from './ace-pro';
+import { decodeProData, keyName, updateProMapping, updateProTrigger, updateProPerformance, type ProData, type ProTriggerValues, type ProPerformance } from './ace-pro';
 import { planAdvanced, type AdvancedData, type AdvancedValue } from './ace-advanced';
 import { decodeLiveTravel, type LiveTravel } from './ace-live';
 
 export interface AceStatus { name: string; firmware: string; profile: number | null; keys: TravelKey[]; canWrite: boolean; raw: Uint8Array | null; lighting?: AceLighting; lightingSnapshot?: LightingSnapshot; canWriteLighting?: boolean }
+type UndoPatch={read:number;write:number;offset:number;before:Uint8Array;after:Uint8Array};
+type UndoEntry={label:string;time:string;patches:UndoPatch[];base:Uint8Array;firmware:Uint8Array;failed:boolean};
 export class AceClient {
+  private history:UndoEntry[]=[];
+  private recording:UndoEntry|null=null;
+  changes(){return this.history.map(e=>({label:e.label,time:e.time,failed:e.failed})).reverse();}
+  undoLast():Promise<void>{return this.run(async()=>{
+    if(this.live)throw Error('Exit live travel or calibration before undo.');
+    const entry=this.history.at(-1);if(!entry)throw Error('No recorded change to undo in this connection.');
+    const info=await this.exchange(packet(3,0,22)),base=await this.readBlock(4,6);
+    if(!this.same(info.slice(8,30),entry.firmware)||!this.same(base,entry.base))throw Error('Firmware or profile changed. Undo is blocked to protect other settings.');
+    for(const p of entry.patches){const current=await this.readBlock(p.read,p.after.length,p.offset);if(!this.same(current,p.after)&&!this.same(current,p.before))throw Error('These settings changed since this action. Undo is blocked; load current settings and review.');}
+    // Reverse the original transaction: deactivate bindings before restoring shared actions.
+    for(const p of [...entry.patches].reverse()){
+      if(!this.same(await this.readBlock(p.read,p.before.length,p.offset),p.before))await this.exchange(packet(p.write,p.offset,p.before.length,p.before));
+      if(!this.same(await this.readBlock(p.read,p.before.length,p.offset),p.before))throw Error('Undo readback failed. Some values may have restored; refresh to inspect.');
+    }
+    if(!this.same(await this.readBlock(4,6),entry.base))throw Error('Profile changed during undo. Refresh to inspect.');
+    this.history.pop();
+  });}
+
   private queue: Promise<unknown> = Promise.resolve();
   private pendingCancel: (() => void) | null = null;
   private live: {profile:number; debug:number; listener:(event:HIDInputReportEvent)=>void; calibrating:boolean}|null=null;
@@ -30,13 +50,24 @@ export class AceClient {
     await device.close().catch(() => {});
     throw new Error('The keyboard did not answer a read request. Close M HUB and other keyboard tools, use wired USB, and try again. Your firmware may require a native bridge.');
   }
-  private run<T>(action: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(action);
+  private run<T>(action: () => Promise<T>,label?:string): Promise<T> {
+    const result = this.queue.then(async()=>{
+      let entry:UndoEntry|null=null;
+      if(label&&this.device.productId===0x2103){
+        if(this.live)throw Error('Exit live travel or calibration before changing settings.');
+        const info=await this.exchange(packet(3,0,22));
+        entry={label,time:new Date().toISOString(),patches:[],base:await this.readBlock(4,6),firmware:info.slice(8,30),failed:false};this.recording=entry;
+      }
+      try{return await action();}catch(error){if(entry)entry.failed=true;throw error;}
+      finally{this.recording=null;if(entry?.patches.length){this.history.push(entry);if(this.history.length>20)this.history.shift();}}
+    });
     this.queue = result.catch(() => {});
     return result;
   }
   private async exchange(request: Uint8Array): Promise<Uint8Array> {
     if (!this.device.opened) throw new Error('Keyboard disconnected.');
+    const read=({6:5,9:8,161:160,165:164,163:162,167:166} as Record<number,number>)[request[1]];
+    if(this.recording&&read){const size=request[4],offset=request[5]|request[6]<<8,before=await this.readBlock(read,size,offset),after=request.slice(8,8+size);if(!this.same(before,after))this.recording.patches.push({read,write:request[1],offset,before,after});}
     return new Promise((resolve, reject) => {
       const cleanup = () => { clearTimeout(timer); this.device.removeEventListener('inputreport', listener); this.pendingCancel = null; };
       const listener = (event: HIDInputReportEvent) => {
@@ -76,7 +107,7 @@ export class AceClient {
       const confirmed=await this.readBlock(5,256),base=await this.readBlock(4,6);
       if(!this.same(next,confirmed)||!this.same(base,snapshot.base))throw new Error('Performance readback differs; refresh or reconnect to inspect current settings.');
       return confirmed;
-    });
+    },'Keyboard performance');
   }
   loadProKeys(snapshot: LightingSnapshot, layer = 0): Promise<ProData> {
     return this.run(async()=>{
@@ -137,7 +168,7 @@ export class AceClient {
       if(!this.same(next,confirmed))throw new Error('Trigger readback differs; some changes may have applied. Load keys again.');
       await this.guardPro(data.snapshot);
       return {...data,travel:confirmed,keys:decodeProData(confirmed,physical)};
-    });
+    },`Trigger: ${slots.map(slot=>data.keys.find(k=>k.slot===slot)?.name??slot).join(', ')} → ${values.actuation} mm`);
   }
   applyProMapping(data: ProData, slot: number, code: number): Promise<ProData> {
     return this.run(async()=>{
@@ -151,7 +182,7 @@ export class AceClient {
       if(!this.same(next,confirmed))throw new Error('Key-map readback differs; load keys again.');
       await this.guardPro(data.snapshot);
       return {...data,mappings:confirmed};
-    });
+    },`Key mapping: ${data.keys.find(k=>k.slot===slot)?.name??slot} → ${keyName(code)} (layer ${data.layer+1})`);
   }
   loadAdvanced(keys:ProData):Promise<AdvancedData> {
     return this.run(async()=>{
@@ -179,7 +210,7 @@ export class AceClient {
       if(!this.same(confirmedMaps,next.mappings)||!this.same(confirmedMt,next.mt)||!this.same(confirmedDks,next.dks)||!this.same(confirmedTravel,next.keys.travel)||!this.same(confirmedTgl,next.tgl!))throw new Error('Advanced readback differs. Some writes may have applied; reload before continuing.');
       await this.guardPro(data.keys.snapshot);
       return {...next,keys:{...next.keys,mappings:confirmedMaps.slice(data.keys.layer*512,data.keys.layer*512+384),keys:decodeProData(confirmedTravel,physical)}};
-    });
+    },`Advanced binding: ${value.type} on ${data.keys.keys.find(k=>k.slot===value.slot)?.name??value.slot}`);
   }
   readStatus(): Promise<AceStatus> {
     return this.run(async () => {
@@ -214,7 +245,7 @@ export class AceClient {
       const confirmed = await this.readBlock(5, 256), confirmedBase = await this.readBlock(4, 6);
       if (!same(confirmed, next) || !same(confirmedBase, base)) throw new Error('Lighting readback differs. Refresh to inspect the current state; changes may have applied.');
       return confirmed;
-    });
+    },'Lighting');
   }
   setWinLock(snapshot: LightingSnapshot, enabled: boolean): Promise<Uint8Array> {
     return this.run(async () => {
@@ -231,7 +262,7 @@ export class AceClient {
       const confirmed = await this.readBlock(5, 256), confirmedBase = await this.readBlock(4, 6);
       if (!same(next, confirmed) || !same(base, confirmedBase)) throw new Error('Win-lock readback differs; refresh to inspect.');
       return confirmed;
-    });
+    },'Windows key lock');
   }
   applyTravel(snapshot: Uint8Array, slots: number[], values: Omit<TravelKey, 'slot'>): Promise<Uint8Array> {
     return this.run(async () => {

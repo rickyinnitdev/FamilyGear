@@ -221,3 +221,19 @@ test('DKS and RS preserve unselected keys and unrelated action banks',async()=>{
  const device=new MockKeyboard();device.productId=0x2103;const {client,status}=await AceClient.connect(device.hid());const keys=await client.loadProKeys(status.lightingSnapshot!);assert.equal(keys.keys[0].mode,1);
  const next=await client.applyProTrigger(keys,[0],{actuation:1.5,press:.3,release:.3,mode:2,pressDeadzone:0,releaseDeadzone:0});assert.equal(next.keys[0].mode,2);assert.equal(next.keys[1].mode,1);await client.close();
  });
+
+test('undo mapping restores Q without changing triggers and records a readable change',async()=>{
+ const d=new MockKeyboard();d.productId=0x2103;const {client,status}=await AceClient.connect(d.hid());const keys=await client.loadProKeys(status.lightingSnapshot!);const q=keys.keys.find(k=>k.code===20)!;const before=d.proTravel.slice();await client.applyProMapping(keys,q.slot,4);assert.equal(client.changes()[0].label,'Key mapping: Q → A (layer 1)');assert.equal(d.mappings[q.slot*3+2],4);await client.undoLast();assert.equal(d.mappings[q.slot*3+2],20);assert.deepEqual(d.proTravel,before);assert.equal(client.changes().length,0);
+});
+test('undo rejects changed mappings or profile before writing',async()=>{
+ const d=new MockKeyboard();d.productId=0x2103;const {client,status}=await AceClient.connect(d.hid());const keys=await client.loadProKeys(status.lightingSnapshot!);await client.applyProMapping(keys,0,5);d.mappings[2]=6;let n=d.reports.length;await assert.rejects(()=>client.undoLast(),/changed since/);assert.ok(d.reports.slice(n).every(r=>r[1]!==9));d.mappings[2]=5;d.base[2]=1;n=d.reports.length;await assert.rejects(()=>client.undoLast(),/profile changed/);assert.ok(d.reports.slice(n).every(r=>r[1]!==9));
+});
+test('undo trigger restores the selected record while keeping later unrelated records',async()=>{
+ const d=new MockKeyboard();d.productId=0x2103;const {client,status}=await AceClient.connect(d.hid());const keys=await client.loadProKeys(status.lightingSnapshot!);const before=d.proTravel.slice(0,8);await client.applyProTrigger(keys,[0],{actuation:1,press:.3,release:.3,mode:1,pressDeadzone:0,releaseDeadzone:0});d.proTravel[8+2]=79;await client.undoLast();assert.deepEqual(d.proTravel.slice(0,8),before);assert.equal(d.proTravel[10],79);
+});
+test('undo refuses ignored restores and retains its recovery record',async()=>{
+ const d=new MockKeyboard();d.productId=0x2103;const {client,status}=await AceClient.connect(d.hid());const keys=await client.loadProKeys(status.lightingSnapshot!);await client.applyProMapping(keys,0,5);d.corruptReadback=true;await assert.rejects(()=>client.undoLast(),/Undo readback failed/);assert.equal(client.changes().length,1);
+});
+test('advanced binding undo restores mappings, shared actions and trigger bytes',async()=>{
+ const d=new MockKeyboard();d.productId=0x2103;const {client,status}=await AceClient.connect(d.hid());const keys=await client.loadProKeys(status.lightingSnapshot!),data=await client.loadAdvanced(keys);const maps=d.mappings.slice(),travel=d.proTravel.slice(),mt=d.mt.slice();await client.applyAdvanced(data,{type:'mt',slot:0,tap:4,hold:5,delay:150});await client.undoLast();assert.deepEqual(d.mappings,maps);assert.deepEqual(d.proTravel,travel);assert.deepEqual(d.mt,mt);
+});
